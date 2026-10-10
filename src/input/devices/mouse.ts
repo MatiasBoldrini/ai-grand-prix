@@ -16,6 +16,11 @@ let canvas: HTMLCanvasElement | null = null
 let pauseEdge = false
 let wasLocked = false
 let releasing = false
+/** When the lock was requested. The browser then warps the cursor and reports a huge delta. */
+let lockRequestedAt = 0
+
+const WARP_WINDOW_MS = 100
+const WARP_PX = 400
 
 function install(): void {
   if (installed || typeof window === 'undefined' || typeof document === 'undefined') return
@@ -23,7 +28,8 @@ function install(): void {
   if (!found || !('requestPointerLock' in found)) return
   canvas = found as HTMLCanvasElement
   installed = true
-  canvas.addEventListener('pointerdown', onPointerDown)
+  // The HUD covers the canvas and wins hit testing, so the gesture arrives on #ui.
+  document.addEventListener('pointerdown', onPointerDown)
   document.addEventListener('mousemove', onMove)
   document.addEventListener('pointerlockchange', onLockChange)
 }
@@ -34,7 +40,7 @@ function mount(): void {
 
 function unmount(): void {
   if (!installed) return
-  canvas?.removeEventListener('pointerdown', onPointerDown)
+  document.removeEventListener('pointerdown', onPointerDown)
   document.removeEventListener('mousemove', onMove)
   document.removeEventListener('pointerlockchange', onLockChange)
   if (document.pointerLockElement === canvas) {
@@ -52,14 +58,29 @@ function hudVisible(): boolean {
 }
 
 function onPointerDown(event: PointerEvent): void {
-  if (event.button !== 0 || !canvas || !hudVisible()) return
+  if (event.button !== 0 || !canvas || !hudVisible() || isControl(event.target)) return
+  lockRequestedAt = performance.now()
   const pending = canvas.requestPointerLock() as void | Promise<void>
   if (pending instanceof Promise) void pending.catch(() => undefined)
 }
 
+function isControl(target: EventTarget | null): boolean {
+  if (!target || typeof target !== 'object' || !('closest' in target)) return false
+  const closest = (target as Element).closest
+  if (typeof closest !== 'function') return false
+  return Boolean(closest.call(target, 'button, a, input, textarea, select, label, [role="slider"]'))
+}
+
 function onMove(event: MouseEvent): void {
   if (!canvas || document.pointerLockElement !== canvas || !hudVisible()) return
+  if (event.movementX === 0 && event.movementY === 0) return
+  if (isLockWarp(event.movementX, event.movementY)) return
   pushLookDelta(event.movementX, event.movementY, preferences.lookSensitivity)
+}
+
+function isLockWarp(dx: number, dy: number): boolean {
+  if (performance.now() - lockRequestedAt > WARP_WINDOW_MS) return false
+  return Math.hypot(dx, dy) > WARP_PX
 }
 
 function onLockChange(): void {

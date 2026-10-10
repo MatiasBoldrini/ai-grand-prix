@@ -14,8 +14,11 @@ test('pointer lock orbits the chase camera and escape still pauses', async ({ pa
   await page.getByRole('button', { name: 'Arrancá a correr' }).click()
   await expect(page.getByRole('button', { name: 'Pausa' })).toBeVisible()
 
-  await page.locator('#view').click({ position: { x: 960, y: 540 } })
+  await page.locator('.hud').click({ position: { x: 960, y: 540 } })
   await page.waitForFunction(() => document.pointerLockElement?.id === 'view')
+  await page.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+  )
 
   await page.evaluate(() => {
     document.dispatchEvent(

@@ -99,6 +99,9 @@ describe('mouse device', () => {
 
     rig.fireMove(0, 0)
     expect(rig.look.peekLook().targetYaw).toBe(0)
+    rig.fireMove(-960, -540)
+    expect(rig.look.peekLook().targetYaw).toBe(0)
+    expect(rig.look.peekLook().targetPitch).toBe(0)
     rig.fireMove(160, -20)
     expect(rig.look.peekLook().targetYaw).toBeGreaterThan(0.5)
     expect(rig.look.peekLook().targetPitch).toBeGreaterThan(0)
@@ -157,6 +160,17 @@ describe('mouse device', () => {
     rig.setHud(false)
     rig.mouse.device.poll()
     rig.firePointerDown()
+    expect(rig.canvas.requestPointerLock).not.toHaveBeenCalled()
+  })
+
+  it('leaves the pause button clickable', async () => {
+    const rig = await boot()
+    rig.setHud(true)
+    rig.mouse.device.poll()
+    const button = {
+      closest: (selector: string) => (selector.includes('button') ? button : null),
+    }
+    rig.firePointerDown(button)
     expect(rig.canvas.requestPointerLock).not.toHaveBeenCalled()
   })
 })
@@ -236,11 +250,11 @@ async function boot() {
     setHud(value: boolean) {
       hudOn = value
     },
-    firePointerDown() {
-      emit(documentListeners, 'canvas:pointerdown', { button: 0 } as Event)
+    firePointerDown(target?: object) {
+      emit(documentListeners, 'pointerdown', { button: 0, target } as unknown as Event)
     },
     fireMove(movementX: number, movementY: number) {
-      emit(documentListeners, 'mousemove', { movementX, movementY } as Event)
+      emit(documentListeners, 'mousemove', { movementX, movementY } as unknown as Event)
     },
     fireKey(code: string) {
       emit(windowListeners, 'keydown', {
@@ -251,7 +265,7 @@ async function boot() {
         ctrlKey: false,
         metaKey: false,
         preventDefault() {},
-      } as Event)
+      } as unknown as Event)
     },
     unlockFromBrowser() {
       documentStub.pointerLockElement = null
