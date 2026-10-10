@@ -67,8 +67,8 @@ A screen with `menu: { label, variant, order }` shows up on the menu through `me
 
 ## Render and audio rules
 
-- Daytime scene only: a gradient sky mesh, warm sun, a hemisphere fill, and linear fog for depth. No post-processing and no shadows, so an integrated GPU can hold 60 fps. `antialias: false`. Pixel ratio is `min(devicePixelRatio, preferences.pixelRatioCap)` with a default cap of `1.25`.
-- Cars and props use Lambert. The sky, grass, and track use a basic material: the ground is flat, so a per-pixel light would shade every pixel the same. Repeated props are instanced. One merged mesh for a unique prop.
+- Daytime scene only: a clear sky color, warm sun, a hemisphere fill, and linear fog for depth. The sky is not a mesh; a gradient mesh shades pixels the ground already covers and misses the frame budget. No post-processing and no shadows, so an integrated GPU can hold 60 fps. `antialias: false`. Pixel ratio is `min(devicePixelRatio, preferences.pixelRatioCap)` with a default cap of `1.25`.
+- Cars use Lambert so the body reads the sun. Grass, track, and repeated props use a basic material: the ground is flat, and a lit prop field is too many shaded pixels. Repeated props are instanced. One merged mesh for a unique prop.
 - Draw-call target stays in the low dozens. Do not add per-frame geometry allocation on the hot path.
 - Car liveries are original color blocks and name text from `CarDefinition.livery`. Do not copy provider logos.
 - Engine pitch follows RPM. Screech is procedural noise (see `ASSETS.md`). Collisions use the `crash` clip. UI uses `click` and `confirm`.

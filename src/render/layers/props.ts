@@ -4,7 +4,7 @@ import {
   CylinderGeometry,
   InstancedMesh,
   Mesh,
-  MeshLambertMaterial,
+  MeshBasicMaterial,
   Object3D,
 } from 'three'
 import { sampleAt } from '../../tracks/spline.ts'
@@ -76,7 +76,7 @@ async function rebuild(frame: RenderFrame, parent: Object3D): Promise<void> {
   const flag = geometries.get('/assets/models/flagCheckers.dae')
 
   if (barrier)
-    parent.add(repeat(barrier, '#d94b3a', points(frame, 12, frame.track.width / 2 + 1.1)))
+    parent.add(repeat(barrier, '#d94b3a', points(frame, 28, frame.track.width / 2 + 1.1)))
   if (light) parent.add(repeat(light, '#f3efe6', points(frame, 40, frame.track.width / 2 + 5)))
   if (pylon) parent.add(repeat(pylon, '#f08c28', shortcutPylons(frame)))
   if (stand) {
@@ -137,7 +137,7 @@ function repeat(
 ): InstancedMesh {
   const mesh = new InstancedMesh(
     geometry,
-    new MeshLambertMaterial({ color: new Color(color) }),
+    new MeshBasicMaterial({ color: new Color(color) }),
     Math.max(1, spots.length),
   )
   mesh.count = spots.length
@@ -163,7 +163,7 @@ function single(
   const sample = sampleAt(frame.track, s)
   const rx = Math.cos(sample.heading)
   const rz = -Math.sin(sample.heading)
-  const mesh = new Mesh(geometry, new MeshLambertMaterial({ color }))
+  const mesh = new Mesh(geometry, new MeshBasicMaterial({ color }))
   mesh.position.set(sample.x + rx * lateral, 0, sample.z + rz * lateral)
   mesh.rotation.y = sample.heading + Math.PI / 2
   return mesh
@@ -176,12 +176,12 @@ function treeField(frame: RenderFrame): Object3D {
   if (spots.length === 0) return group
   const trunks = new InstancedMesh(
     TRUNK,
-    new MeshLambertMaterial({ color: '#ffffff' }),
+    new MeshBasicMaterial({ color: '#ffffff' }),
     spots.length,
   )
   const crowns = new InstancedMesh(
     CROWN,
-    new MeshLambertMaterial({ color: '#ffffff' }),
+    new MeshBasicMaterial({ color: '#ffffff' }),
     spots.length,
   )
   const dummy = new Object3D()
@@ -207,7 +207,7 @@ function treeField(frame: RenderFrame): Object3D {
 
 function treeSpots(frame: RenderFrame): { x: number; z: number; yaw: number; scale: number }[] {
   const spots: { x: number; z: number; yaw: number; scale: number }[] = []
-  const every = 34
+  const every = 96
   const lateral = frame.track.width / 2 + frame.track.runoff + 9
   const count = Math.floor(frame.track.length / every)
   for (let i = 0; i < count; i += 1) {

@@ -15,7 +15,7 @@ export const layer: RenderLayer = {
     camera = ctx.camera
     camera.fov = 68
     camera.near = 0.1
-    camera.far = 700
+    camera.far = 460
     camera.position.set(0, 30, 40)
     camera.updateProjectionMatrix()
   },
