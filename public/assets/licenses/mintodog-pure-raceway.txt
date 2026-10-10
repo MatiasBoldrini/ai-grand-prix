@@ -1,0 +1,12 @@
+Pure Raceway
+
+Created by MintoDog
+https://opengameart.org/content/pure-raceway
+Original file: pure_raceway_bpm160.ogg
+Date: 2024
+
+License: Creative Commons Zero, CC0
+http://creativecommons.org/publicdomain/zero/1.0/
+
+Loopable 160 BPM racing music. Attribution is not required.
+The ogg in this repository is the author's file, unmodified.

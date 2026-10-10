@@ -1,0 +1,13 @@
+Tire skid loop
+
+Created by Landeplage (https://github.com/Landeplage)
+Distributed with Kenney Starter Kit Racing
+https://github.com/KenneyNL/Starter-Kit-Racing
+File: audio/skid.ogg
+
+License: Creative Commons Zero, CC0
+http://creativecommons.org/publicdomain/zero/1.0/
+
+Kenney's README for that kit states that the included sound effects are CC0
+and that this skid, made by Landeplage, is CC0 as well.
+Attribution is not required.
