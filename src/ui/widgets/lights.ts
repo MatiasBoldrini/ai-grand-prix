@@ -37,7 +37,8 @@ const STYLE_ID = 'agp-lights-style'
 const LIGHTS_CSS = `
 .agp-lights {
   position: fixed;
-  top: 156px;
+  /* Below the ghost chip (ends near 116px) and above the lap clock (starts near 291px). */
+  top: 124px;
   left: 50%;
   z-index: 4;
   transform: translateX(-50%);

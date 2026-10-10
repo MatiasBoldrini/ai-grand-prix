@@ -26,9 +26,15 @@ test('the start lights hold the grid, then the clock runs', async ({ page }) => 
 
   const lightsBox = await lights.boundingBox()
   const pauseBox = await pause.boundingBox()
+  const timeBox = await page.locator('.readout', { hasText: 'Tiempo' }).boundingBox()
+  const ghostBox = await page.locator('[data-ghost-delta]').boundingBox()
   expect(lightsBox).not.toBeNull()
   expect(pauseBox).not.toBeNull()
+  expect(timeBox).not.toBeNull()
+  expect(ghostBox).not.toBeNull()
   if (lightsBox && pauseBox) expect(overlaps(lightsBox, pauseBox)).toBe(false)
+  if (lightsBox && timeBox) expect(overlaps(lightsBox, timeBox)).toBe(false)
+  if (lightsBox && ghostBox) expect(overlaps(lightsBox, ghostBox)).toBe(false)
 
   await expect
     .poll(async () => lights.getAttribute('data-phase'), { timeout: 8_000 })
