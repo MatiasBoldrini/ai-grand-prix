@@ -1,0 +1,74 @@
+/* Flat semantic tokens. Each line is `name: value; /* job | used by *\/`.
+   Values are the Lime dark theme (design.how). Components read these roles, never hex. */
+
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&display=swap');
+
+.lime[data-theme='dark'] {
+  --page: #0e0e0c; /* the page | app background */
+  --surface: #1a1a17; /* cards and panels | menu, garage, results */
+  --surface-2: #262622; /* a control at rest | secondary button */
+  --surface-3: #32322d; /* a pressed control or a meter track | energy track, pressed */
+  --raised: #1f1f1c; /* a floating surface | pause card */
+  --scrim: rgb(0 0 0 / 0.64); /* the layer behind a dialog | pause */
+  --fg: #f4f3ee; /* primary text | headings, HUD values */
+  --fg-2: #c9c7be; /* secondary text | descriptions */
+  --fg-3: #9a9890; /* supporting text | hints, HUD labels */
+  --fg-disabled: #5e5d57; /* disabled label | disabled button */
+  --on-accent: #0f0f0d; /* text on the accent | primary button */
+  --line: #2e2e29; /* a hairline | panel edge, HUD rule */
+  --line-strong: #3f3f39; /* a stronger hairline | choice outline */
+  --ink: #f4f3ee; /* the solid ink action | solid button */
+  --ink-hover: #e1dfd7; /* ink on hover | solid button */
+  --ink-active: #cfcdc4; /* ink pressed | solid button */
+  --accent: #cad649; /* the mark | primary button, selected meter */
+  --accent-hover: #d6e262; /* the mark on hover | primary button */
+  --accent-active: #bac534; /* the mark pressed | primary button */
+  --accent-wash: #2b2e0c; /* a chosen row | selected car, selected track */
+  --accent-line: #cad649; /* focus ring on dark | focus-visible */
+  --ring: var(--accent-line); /* the focus ring | every focus-visible state */
+  --success: #4ade80; /* success mark | finished lap */
+  --warn: #ffb224; /* warning mark | low context */
+  --danger: #e5484d; /* error mark | error text accent */
+  --danger-text: #ff8a8a; /* error text | error screen */
+  --glow-accent-from: #c2cd3f; /* top of the primary glow | primary button */
+  --glow-accent-to: #d1e376; /* bottom of the primary glow | primary button */
+  --glow-accent-from-lit: #c8d447; /* top of the glow on hover | primary button */
+  --glow-accent-to-lit: #d8e983; /* bottom of the glow on hover | primary button */
+  --glow-accent-fg: #0f0f0d; /* text on the glow | primary button */
+  --shadow-ink: 0 0 0; /* the shadow channel | panel shadow */
+  --shadow-overlay:
+    0 24px 48px -12px rgb(var(--shadow-ink) / 0.7), 0 0 0 1px var(--line); /* a dialog | menu panel */
+  --font-sans: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif; /* every word | all text */
+  --font-mono:
+    ui-monospace, 'SF Mono', Menlo, Consolas, monospace; /* times and speed | HUD, results */
+  --text-xs: 12px; /* captions | debug overlay only */
+  --text-sm: 14px; /* controls and body | buttons, hints */
+  --text-base: 16px; /* prose | screen copy */
+  --text-lg: 18px; /* a section heading | h2 */
+  --text-xl: 22px; /* an overlay heading | dialog title */
+  --text-2xl: 28px; /* a page heading | h1 */
+  --leading-tight: 1.2; /* headings | h1, h2 */
+  --leading-snug: 1.35; /* labels | buttons */
+  --leading-normal: 1.5; /* prose | paragraphs */
+  --weight-normal: 400; /* body | prose */
+  --weight-medium: 500; /* controls | buttons, labels */
+  --weight-semibold: 600; /* headings | h1, h2 */
+  --control-md: 40px; /* the default control | secondary button */
+  --control-lg: 48px; /* a primary action | primary button, choices */
+  --radius-panel: 16px; /* a card | menu panel */
+  --radius-sheet: 24px; /* a bottom sheet | mobile panel */
+  --radius-control: 999px; /* a button | buttons, choices */
+  --dur-instant: 80ms; /* hover and press | buttons */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); /* the house curve | buttons */
+  --scale-press: 0.98; /* a control while pressed | buttons */
+  --focus-offset: 2px; /* the gap before the ring | focus-visible */
+  --line-focus: 2px; /* the ring weight | focus-visible */
+  --z-toast: 60; /* the debug overlay | fps */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lime {
+    --dur-instant: 0ms;
+    --scale-press: 1;
+  }
+}
