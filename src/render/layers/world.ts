@@ -1,5 +1,4 @@
 import {
-  AmbientLight,
   BufferAttribute,
   CircleGeometry,
   Color,
@@ -8,7 +7,6 @@ import {
   HemisphereLight,
   Mesh,
   MeshBasicMaterial,
-  MeshLambertMaterial,
   SphereGeometry,
   BackSide,
 } from 'three'
@@ -27,13 +25,12 @@ export const layer: RenderLayer = {
     context = ctx
     ctx.scene.background = new Color('#b7d6ee')
     ctx.scene.fog = new Fog('#d5e6f2', 88, 430)
-    const skyLight = new HemisphereLight('#fff6e4', '#6ea35a', 0.55)
-    const sun = new DirectionalLight('#fff1d2', 0.9)
+    const skyLight = new HemisphereLight('#fff6e4', '#6ea35a', 0.62)
+    const sun = new DirectionalLight('#fff1d2', 0.95)
     sun.position.set(70, 92, 28)
     sun.castShadow = false
-    const fill = new AmbientLight('#fffaf2', 0.14)
     sky = makeSky()
-    ctx.scene.add(skyLight, sun, fill, sky)
+    ctx.scene.add(skyLight, sun, sky)
   },
   update() {
     if (sky && context) sky.position.copy(context.camera.position)
@@ -57,7 +54,8 @@ export function ensureGrass(ctx: RenderContext, frame: RenderFrame): void {
   const radius = bounds.radius + 260
   const geometry = new CircleGeometry(radius, 72)
   paintGrass(geometry)
-  grass = new Mesh(geometry, new MeshLambertMaterial({ vertexColors: true }))
+  // Flat ground. A Lambert shade is the same on every pixel, so basic color keeps the sun tint.
+  grass = new Mesh(geometry, new MeshBasicMaterial({ vertexColors: true }))
   grass.rotation.x = -Math.PI / 2
   grass.position.set(bounds.centerX, 0, bounds.centerZ)
   ctx.scene.add(grass)

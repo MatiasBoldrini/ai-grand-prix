@@ -1,4 +1,4 @@
-import { BufferAttribute, BufferGeometry, Group, Mesh, MeshLambertMaterial } from 'three'
+import { BufferAttribute, BufferGeometry, Group, Mesh, MeshBasicMaterial } from 'three'
 import { at } from '../../core/math.ts'
 import { sampleAt } from '../../tracks/spline.ts'
 import type { Track } from '../../tracks/types.ts'
@@ -43,10 +43,13 @@ function roadMesh(track: Track): Mesh {
   return ribbon(track, track.width / 2, 0.03, '#3e4654', 2)
 }
 
-function gravelMesh(track: Track): Mesh {
+function gravelMesh(track: Track): Group {
   const inner = track.width / 2
   const outer = inner + Math.min(track.runoff, 4.2)
-  return ribbonBetween(track, -outer, outer, 0.012, '#c6a56e', 3)
+  const gravel = new Group()
+  gravel.add(ribbonBetween(track, inner, outer, 0.012, '#c6a56e', 4))
+  gravel.add(ribbonBetween(track, -outer, -inner, 0.012, '#c6a56e', 4))
+  return gravel
 }
 
 function centerMesh(track: Track): Mesh {
@@ -111,7 +114,7 @@ function startMesh(track: Track): Mesh {
   geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3))
   geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3))
   geometry.computeVertexNormals()
-  return new Mesh(geometry, new MeshLambertMaterial({ vertexColors: true }))
+  return new Mesh(geometry, new MeshBasicMaterial({ vertexColors: true }))
 }
 
 function ribbon(track: Track, half: number, y: number, color: string, step: number): Mesh {
@@ -192,7 +195,7 @@ function coloredMesh(positions: number[], colors: number[], indices: number[]): 
   geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3))
   geometry.setIndex(indices)
   geometry.computeVertexNormals()
-  return new Mesh(geometry, new MeshLambertMaterial({ vertexColors: true }))
+  return new Mesh(geometry, new MeshBasicMaterial({ vertexColors: true }))
 }
 
 function ribbonBetween(
@@ -221,12 +224,13 @@ function ribbonBetween(
   geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3))
   geometry.setIndex(indices)
   geometry.computeVertexNormals()
-  return new Mesh(geometry, new MeshLambertMaterial({ color }))
+  return new Mesh(geometry, new MeshBasicMaterial({ color }))
 }
 
 function clear(target: Group): void {
   for (const child of [...target.children]) {
     target.remove(child)
+    if (child instanceof Group) clear(child)
     const mesh = child as Mesh
     mesh.geometry?.dispose()
     const material = mesh.material
