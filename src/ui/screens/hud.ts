@@ -18,7 +18,7 @@ export const screen: ScreenModule = {
     note.setAttribute('role', 'status')
     const live = el('p', 'sr-only')
     live.setAttribute('aria-live', 'polite')
-    const widgets = el('div', 'stack')
+    const widgets = el('div', 'stack hud-widgets')
     const mountedWidgets = mountWidgets(widgets)
 
     hud.append(el('div', 'hud-row', undefined))
@@ -33,7 +33,7 @@ export const screen: ScreenModule = {
         }),
       )
     }
-    const bottom = el('div', 'hud-row')
+    const bottom = el('div', 'hud-row hud-telemetry')
     bottom.append(readout('Velocidad', speed), readout('Tiempo', time), readout('Contexto', meter))
     const speedUnit = el('span', undefined, 'km/h')
     speed.parentElement?.append(speedUnit)

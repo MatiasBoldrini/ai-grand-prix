@@ -360,6 +360,27 @@ h2 {
   }
 }
 
+/* Short landscape: the wheel and the pedals own the bottom edge, and
+   respawn sits under the position readout. Keep the lap numbers between them. */
+@media (max-height: 460px) {
+  .hud-telemetry {
+    position: absolute;
+    top: 128px;
+    right: 16px;
+    left: 16px;
+    z-index: 2;
+  }
+
+  .hud-widgets {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    z-index: 1;
+    width: 152px;
+    pointer-events: none;
+  }
+}
+
 @media (max-width: 720px) {
   .panel {
     position: absolute;
