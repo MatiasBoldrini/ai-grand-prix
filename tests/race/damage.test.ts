@@ -143,6 +143,20 @@ describe('contact damage', () => {
     expect(player.condition).toBeGreaterThanOrEqual(RESPAWN_CONDITION)
   })
 
+  it('repairs the chassis when R is applied on the next step', () => {
+    const world = race()
+    const player = playerRacer(world)
+    player.condition = CONDITION_FLOOR
+    respawnRacer(world, player)
+    expect(player.condition).toBe(CONDITION_FLOOR)
+    expect(world.events.some((event) => event.type === 'respawn')).toBe(false)
+    stepRace(world, { throttle: 0, brake: 0, steer: 0 }, dt)
+    expect(
+      world.events.some((event) => event.type === 'respawn' && event.racerId === 'player'),
+    ).toBe(true)
+    expect(player.condition).toBeGreaterThanOrEqual(RESPAWN_CONDITION)
+  })
+
   it('charges one scrape once and still hurts a later hit', () => {
     const world = race()
     const player = playerRacer(world)

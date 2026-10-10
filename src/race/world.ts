@@ -15,6 +15,9 @@ import { listHooks } from './hook-registry.ts'
 import { noteProgress } from './progress.ts'
 import type { RaceEvent, Racer, RacerSnapshot, RaceSnapshot, RaceWorld } from './types.ts'
 
+/** Respawn requested before this step (the R key) or during it (the grass rescue). */
+const respawnQueued = new Set<Racer>()
+
 export interface CreateRaceOptions {
   track: Track
   player: CarDefinition
@@ -149,13 +152,14 @@ export function stepRace(world: RaceWorld, human: VehicleInput, dt: number): voi
     const input = driven[index] ?? IDLE_INPUT
     const speed = Math.abs(racer.vehicle.speed)
     const crawling = speed < 1.1 && input.throttle > 0.55 && input.brake < 0.2
-    const beached = racer.surface === 'grass' && speed < 1.5
+    const beached = racer.surface !== 'asphalt' && speed < 1.5
     const lost = Math.abs(settled.lateral) > world.track.width / 2 + world.track.runoff + 12
     if (racer.grace <= 0 && !racer.finished && (beached || crawling || lost)) racer.stuck += dt
     else racer.stuck = 0
     if (racer.stuck > (beached ? 2 : 2.4)) respawnRacer(world, racer)
   })
 
+  publishRespawns(world)
   for (const hook of listHooks()) hook.afterStep?.(world, dt)
   world.time += dt
   const leader = world.racers.find((racer) => racer.isPlayer)
@@ -171,7 +175,14 @@ export function respawnRacer(world: RaceWorld, racer: Racer): void {
   racer.stuck = 0
   racer.grace = 1.4
   racer.surface = 'asphalt'
-  pushEvent(world, 'respawn', racer.id)
+  respawnQueued.add(racer)
+}
+
+function publishRespawns(world: RaceWorld): void {
+  for (const racer of world.racers) {
+    if (!respawnQueued.delete(racer)) continue
+    pushEvent(world, 'respawn', racer.id)
+  }
 }
 
 export function snapshotRace(world: RaceWorld): RaceSnapshot {
