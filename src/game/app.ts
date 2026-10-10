@@ -113,6 +113,9 @@ export async function startGame(options: {
         shell.show('hud')
       }
     }
+    // «Seguí corriendo» only switches to the HUD. Escape is what sets `paused`,
+    // so a loaded race on the HUD has to drop that flag or the car stays frozen.
+    if (world && shell.screenId === 'hud') paused = false
 
     const simStarted = performance.now()
     const racing = Boolean(world) && !paused && shell.screenId === 'hud'
