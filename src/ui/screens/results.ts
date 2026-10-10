@@ -13,6 +13,8 @@ export interface PodiumEntry {
   color: string
   position: number
   isPlayer: boolean
+  /** What the step and the times table show. */
+  label: string
   finishLabel: string
   gapLabel: string | null
   lapsLine: string | null
@@ -63,6 +65,16 @@ export function formatGap(seconds: number): string | null {
   if (seconds >= 60) return `+${clock}`
   const body = clock.slice(2).replace(/^0/, '')
   return `+${body}`
+}
+
+/**
+ * Visible name. The player car is already called «Vos», so the podium must
+ * not append «, vos» again. Any other player name keeps that mark.
+ */
+export function podiumName(name: string, isPlayer: boolean): string {
+  const label = name.trim() || 'El rival'
+  if (!isPlayer || isYouName(label)) return label
+  return `${label}, vos`
 }
 
 export function rankRacers(racers: readonly RacerSnapshot[]): PodiumEntry[] {
@@ -158,7 +170,7 @@ function stepNode(entry: PodiumStep): HTMLLIElement {
   const item = el('li', entry.isPlayer ? 'podium-step is-you' : 'podium-step')
   item.dataset.place = String(entry.position)
   item.style.order = String(entry.visualOrder)
-  const who = el('span', 'who', named(entry))
+  const who = el('span', 'who', entry.label)
   who.title = entry.name
   const bar = el('div', 'bar')
   const swatch = el('span', 'swatch')
@@ -180,7 +192,7 @@ function rowNode(entry: PodiumEntry): HTMLLIElement {
   const swatch = el('span', 'row-swatch')
   swatch.style.background = entry.color
   swatch.setAttribute('aria-hidden', 'true')
-  name.append(swatch, document.createTextNode(`${entry.position}º ${named(entry)}`))
+  name.append(swatch, document.createTextNode(`${entry.position}º ${entry.label}`))
   who.append(name)
   if (entry.lapsLine) who.append(el('small', 'laps', entry.lapsLine))
   const clock = el('span', 'clock', entry.finishLabel)
@@ -189,9 +201,8 @@ function rowNode(entry: PodiumEntry): HTMLLIElement {
   return row
 }
 
-function named(entry: PodiumEntry): string {
-  const name = entry.name.trim() || 'El rival'
-  return entry.isPlayer ? `${name}, vos` : name
+function isYouName(label: string): boolean {
+  return label.localeCompare('vos', 'es', { sensitivity: 'accent' }) === 0
 }
 
 function viewSignature(snapshot: RaceSnapshot | null): string {
@@ -215,6 +226,7 @@ function toEntry(racer: RacerSnapshot, winnerTime: number | null, isWinner: bool
     color: paintColor(racer.color),
     position: racer.position,
     isPlayer: racer.isPlayer,
+    label: podiumName(racer.name, racer.isPlayer),
     finishLabel,
     gapLabel,
     lapsLine: lapsLine(racer.lapTimes),
@@ -252,7 +264,7 @@ function leadCopy(entries: readonly PodiumEntry[]): string {
   if (entries.length === 0) return 'No hay tiempos para mostrar.'
   const player = entries.find((entry) => entry.isPlayer)
   if (player?.position === 1) return 'Llegaste primero.'
-  const winnerName = entries[0] ? named(entries[0]) : 'El rival'
+  const winnerName = entries[0]?.label ?? 'El rival'
   if (player && player.position > 1) return `Llegaste ${player.position}º. ${winnerName} te ganó.`
   return `${winnerName} llegó antes.`
 }

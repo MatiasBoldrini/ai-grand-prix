@@ -6,6 +6,7 @@ import {
   formatGap,
   paintColor,
   podiumActions,
+  podiumName,
   podiumView,
   rankRacers,
   screen,
@@ -237,6 +238,43 @@ describe('podium', () => {
     calls.length = 0
     actions.menu()
     expect(calls).toEqual(['play:click', 'quit'])
+  })
+
+  it('shows Vos once on the step and in the times table', () => {
+    expect(podiumName('Vos', true)).toBe('Vos')
+    expect(podiumName('vos', true)).toBe('vos')
+    expect(podiumName('  VOS ', true)).toBe('VOS')
+    expect(podiumName('Flash 7B', true)).toBe('Flash 7B, vos')
+    expect(podiumName('Vos', false)).toBe('Vos')
+    expect(podiumName('   ', true)).toBe('El rival, vos')
+
+    const view = podiumView(
+      race([
+        racer({
+          id: 'you',
+          name: 'Vos',
+          position: 2,
+          isPlayer: true,
+          finishTime: 129.383,
+          lapTimes: [72.033, 57.35],
+        }),
+        racer({
+          id: 'rival',
+          name: 'Reasoner 70B',
+          position: 1,
+          finishTime: 69.5,
+          lapTimes: [35.5, 34],
+        }),
+      ]),
+    )
+    expect(view.rows.map((entry) => entry.id)).toEqual(['rival', 'you'])
+    expect(view.rows.map((entry) => entry.label)).toEqual(['Reasoner 70B', 'Vos'])
+    expect(view.steps.map((entry) => entry.label)).toEqual(['Reasoner 70B', 'Vos'])
+    expect(view.rows.map((entry) => entry.finishLabel)).toEqual(['1:09.500', '2:09.383'])
+    expect(view.rows[1]?.lapsLine).toBe('1:12.033 · 0:57.350 · Mejor 0:57.350')
+    expect(view.lead).toBe('Llegaste 2º. Reasoner 70B te ganó. Te sacó 59.883 s.')
+    expect(view.rows.some((entry) => entry.label.includes(', vos'))).toBe(false)
+    expect(view.steps.some((entry) => entry.label.includes(', vos'))).toBe(false)
   })
 
   it('says how many laps the circuit asked for', () => {

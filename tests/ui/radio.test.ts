@@ -4,6 +4,7 @@ import type { RaceEvent, RaceSnapshot, RacerSnapshot } from '../../src/race/type
 import { listWidgets } from '../../src/ui/widget-registry.ts'
 import {
   createRadioState,
+  RADIO_DESKTOP_TOP_PX,
   RADIO_HOLD_S,
   stepRadio,
   widget,
@@ -225,6 +226,25 @@ describe('race radio', () => {
     expect(state.revision).toBe(0)
   })
 
+  it('sits below the ghost delta on a 1920x1080 desktop', () => {
+    const ghost = { x: 907, y: 72, width: 106, height: 45 }
+    const radio = { x: 853, y: RADIO_DESKTOP_TOP_PX, width: 215, height: 37 }
+    const wide = { x: (1920 - 512) / 2, y: RADIO_DESKTOP_TOP_PX, width: 512, height: 74 }
+    expect(RADIO_DESKTOP_TOP_PX).toBe(72 + 45 + 16)
+    expect(radio.y - (ghost.y + ghost.height)).toBeGreaterThanOrEqual(16)
+    expect(overlaps(ghost, radio)).toBe(false)
+    expect(overlaps(ghost, wide)).toBe(false)
+
+    const parent = installDom()
+    const mounted = widget.mount(parent as unknown as HTMLElement)
+    const css = document.getElementById('agp-radio-style')?.textContent ?? ''
+    expect(css).toContain(`top: calc(${RADIO_DESKTOP_TOP_PX}px + env(safe-area-inset-top, 0px));`)
+    expect(css).toContain('@media (min-width: 721px) and (min-height: 461px)')
+    expect(css).toContain('top: 80px;')
+    expect(css).toContain('top: 144px;')
+    mounted.unmount()
+  })
+
   it('reads the frame and does not subscribe to anything else', () => {
     const source = readFileSync(new URL('../../src/ui/widgets/radio.ts', import.meta.url), 'utf8')
     expect(source).not.toMatch(
@@ -278,6 +298,13 @@ describe('race radio', () => {
     expect(document.getElementById('agp-radio-style')).toBeNull()
   })
 })
+
+function overlaps(
+  a: { x: number; y: number; width: number; height: number },
+  b: { x: number; y: number; width: number; height: number },
+): boolean {
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
+}
 
 function prime(racers?: RacerSnapshot[]): RadioState {
   return stepRadio(createRadioState(), { snapshot: race({ time: 0, racers }) })

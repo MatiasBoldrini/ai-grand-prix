@@ -11,6 +11,13 @@ import type { RaceSnapshot, RacerSnapshot } from '../../race/types.ts'
 
 export const RADIO_HOLD_S = 2.8
 
+/**
+ * Desktop pin at 1920×1080. The ghost delta is fixed at 72px and paints about
+ * 45px, so this leaves 16px of air and the two centered boxes never meet.
+ * Short and narrow screens keep their own top rules.
+ */
+export const RADIO_DESKTOP_TOP_PX = 72 + 45 + 16
+
 const PRIORITY = {
   lap: 10,
   shortcut: 20,
@@ -42,6 +49,12 @@ const RADIO_CSS = `
   line-height: var(--leading-snug);
   text-align: start;
   pointer-events: none;
+}
+
+@media (min-width: 721px) and (min-height: 461px) {
+  .agp-radio {
+    top: calc(${RADIO_DESKTOP_TOP_PX}px + env(safe-area-inset-top, 0px));
+  }
 }
 
 .agp-radio::before {
