@@ -52,6 +52,8 @@ const skidHeatSlot = new Float32Array(SKID_CAPACITY)
 const skidAge = new Float32Array(SKID_CAPACITY)
 const skidLive = new Uint8Array(SKID_CAPACITY)
 const skidHidden = new Uint8Array(SKID_CAPACITY)
+const skidDrawn = new Uint8Array(SKID_CAPACITY)
+const skidShade = new Int8Array(SKID_CAPACITY)
 
 const dustX = new Float32Array(DUST_CAPACITY)
 const dustZ = new Float32Array(DUST_CAPACITY)
@@ -212,6 +214,8 @@ function resetParticles(): void {
   dustCursor = 0
   dustSerial = 0
   skidLive.fill(0)
+  skidDrawn.fill(0)
+  skidShade.fill(-1)
   dustLive.fill(0)
   resetEmitters()
   const skids = skidMesh
@@ -384,6 +388,8 @@ function pushSkid(
   skidAge[index] = 0
   skidLive[index] = 1
   skidHidden[index] = 0
+  skidDrawn[index] = 0
+  skidShade[index] = -1
 }
 
 function pushDust(
@@ -426,36 +432,45 @@ function ageBuffers(dt: number): void {
 function syncSkids(): void {
   const mesh = skidMesh
   if (!mesh) return
-  let dirty = false
+  let dirtyMatrix = false
+  let dirtyColor = false
   for (let i = 0; i < SKID_CAPACITY; i += 1) {
     if (skidLive[i]) {
+      if (!skidDrawn[i]) {
+        writePose(
+          mesh,
+          i,
+          num(skidX, i),
+          0.07,
+          num(skidZ, i),
+          num(skidYaw, i),
+          num(skidWidth, i),
+          1,
+          num(skidLength, i),
+        )
+        skidDrawn[i] = 1
+        dirtyMatrix = true
+      }
       const fade = 1 - smoothstep(0.42, 1, num(skidAge, i) / SKID_LIFE)
-      const width = num(skidWidth, i) * (0.7 + 0.3 * fade)
-      writePose(
-        mesh,
-        i,
-        num(skidX, i),
-        0.07,
-        num(skidZ, i),
-        num(skidYaw, i),
-        width,
-        1,
-        num(skidLength, i),
-      )
-      fresh.copy(MILD).lerp(HARD, clamp(num(skidHeatSlot, i), 0, 1))
-      scratch.copy(ROAD).lerp(fresh, fade)
-      mesh.setColorAt(i, scratch)
+      const shade = Math.round(fade * 8)
+      if (skidShade[i] !== shade) {
+        skidShade[i] = shade
+        fresh.copy(MILD).lerp(HARD, clamp(num(skidHeatSlot, i), 0, 1))
+        scratch.copy(ROAD).lerp(fresh, fade)
+        mesh.setColorAt(i, scratch)
+        dirtyColor = true
+      }
       skidHidden[i] = 0
-      dirty = true
     } else if (!skidHidden[i]) {
       writePose(mesh, i, 0, -8, 0, 0, 0, 0, 0)
       skidHidden[i] = 1
-      dirty = true
+      skidDrawn[i] = 0
+      skidShade[i] = -1
+      dirtyMatrix = true
     }
   }
-  if (!dirty) return
-  mesh.instanceMatrix.needsUpdate = true
-  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+  if (dirtyMatrix) mesh.instanceMatrix.needsUpdate = true
+  if (dirtyColor && mesh.instanceColor) mesh.instanceColor.needsUpdate = true
 }
 
 function syncDust(): void {
