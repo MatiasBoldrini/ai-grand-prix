@@ -2,13 +2,18 @@ import {
   Box3,
   BoxGeometry,
   BufferGeometry,
+  CanvasTexture,
   Color,
   Group,
+  Matrix4,
   Mesh,
   MeshLambertMaterial,
   Object3D,
+  PlaneGeometry,
+  SRGBColorSpace,
   Vector3,
 } from 'three'
+import type { CarLivery } from '../cars/types.ts'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js'
 
@@ -67,6 +72,96 @@ export function fitObject(root: Object3D, targetLength: number): Object3D {
   const length = Math.max(fittedSize.x, fittedSize.z, 0.001)
   wrapper.scale.setScalar(targetLength / length)
   return wrapper
+}
+
+const plates = new Map<string, CanvasTexture>()
+
+/** Side, roof and rear plates. Geometry is local to the fitted car. */
+export function attachLivery(root: Object3D, livery: CarLivery, team: string): void {
+  const previous = root.getObjectByName('livery')
+  if (previous) {
+    previous.traverse((obj) => {
+      const mesh = obj as Mesh
+      if (mesh.isMesh) mesh.geometry.dispose()
+    })
+    previous.removeFromParent()
+  }
+  root.updateMatrixWorld(true)
+  const inverse = new Matrix4().copy(root.matrixWorld).invert()
+  const local = new Box3().setFromObject(root).applyMatrix4(inverse)
+  const size = local.getSize(new Vector3())
+  const center = local.getCenter(new Vector3())
+  if (size.x < 0.01 || size.z < 0.01) return
+
+  const group = new Group()
+  group.name = 'livery'
+  const plate = plateMaterial(livery, team)
+  const stripe = new MeshLambertMaterial({ color: livery.stripe })
+  const trim = new MeshLambertMaterial({ color: livery.trim })
+
+  const cover = new Mesh(new PlaneGeometry(size.x * 0.42, size.z * 0.34), stripe)
+  cover.rotation.x = -Math.PI / 2
+  cover.position.set(center.x, local.max.y + 0.03, center.z - size.z * 0.06)
+  cover.name = 'livery-cover'
+  const pinstripe = new Mesh(new PlaneGeometry(size.x * 0.46, size.z * 0.045), trim)
+  pinstripe.rotation.x = -Math.PI / 2
+  pinstripe.position.set(center.x, local.max.y + 0.04, center.z + size.z * 0.12)
+  pinstripe.name = 'livery-pin'
+  group.add(cover, pinstripe)
+
+  const rear = new Mesh(new PlaneGeometry(size.x * 0.62, size.y * 0.28), plate)
+  rear.rotation.y = Math.PI
+  rear.position.set(center.x, center.y + size.y * 0.08, local.min.z - 0.03)
+  rear.name = 'livery-rear'
+  group.add(rear)
+
+  const boardW = size.z * 0.34
+  const boardH = size.y * 0.2
+  for (const side of [-1, 1]) {
+    const board = new Mesh(new PlaneGeometry(boardW, boardH), plate)
+    board.rotation.y = side > 0 ? Math.PI / 2 : -Math.PI / 2
+    board.position.set(center.x + side * (size.x * 0.5 + 0.03), center.y, center.z - size.z * 0.02)
+    board.name = 'livery-side'
+    group.add(board)
+  }
+
+  root.add(group)
+}
+
+function plateMaterial(livery: CarLivery, team: string): MeshLambertMaterial {
+  const key = `${livery.wordmark}|${team}|${livery.stripe}|${livery.trim}|${livery.ink}`
+  let map = plates.get(key)
+  if (!map) {
+    map = new CanvasTexture(paintPlate(livery, team))
+    map.colorSpace = SRGBColorSpace
+    map.needsUpdate = true
+    plates.set(key, map)
+  }
+  const material = new MeshLambertMaterial({ map, transparent: true })
+  material.polygonOffset = true
+  material.polygonOffsetFactor = -2
+  material.polygonOffsetUnits = -2
+  return material
+}
+
+function paintPlate(livery: CarLivery, team: string): HTMLCanvasElement {
+  const canvas = document.createElement('canvas')
+  canvas.width = 512
+  canvas.height = 160
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return canvas
+  ctx.fillStyle = livery.stripe
+  ctx.fillRect(0, 0, 512, 160)
+  ctx.fillStyle = livery.trim
+  ctx.fillRect(0, 0, 18, 160)
+  ctx.fillStyle = livery.ink
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.font = '600 28px ui-sans-serif, system-ui, sans-serif'
+  ctx.fillText(team.toUpperCase(), 270, 42)
+  ctx.font = '800 72px ui-sans-serif, system-ui, sans-serif'
+  ctx.fillText(livery.wordmark, 270, 104)
+  return canvas
 }
 
 export function paintBody(root: Object3D, color: string): void {

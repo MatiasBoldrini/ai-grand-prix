@@ -29,7 +29,7 @@ export function lineupText(input: {
   const car = input.carName?.trim() ?? ''
   const rival = input.personalityName?.trim() ?? ''
   const track = input.trackName?.trim() ?? ''
-  if (!car) return 'No hay un modelo cargado. Sin auto no se puede largar.'
+  if (!car) return 'No hay un auto cargado. Sin auto no se puede largar.'
   const withCar = `Hoy corrés con ${car}.`
   if (!rival) return `${withCar} Todavía no hay un rival cargado.`
   const withRival = `${withCar} El rival maneja al estilo ${rival}.`
@@ -110,7 +110,7 @@ export const screen: ScreenModule = {
       el(
         'p',
         'menu-lead',
-        'Cada auto está afinado como un modelo. Velocidad, contexto, razonamiento, creatividad y costo. Elegí uno y salí a ver si te cierra la vuelta.',
+        'Cada auto corre con el ploteo de una escudería. Velocidad, contexto, razonamiento, creatividad y costo siguen en la ficha. Elegí uno y salí a ver si te cierra la vuelta.',
       ),
     )
 

@@ -75,11 +75,11 @@ export interface MinimapPalette {
 }
 
 export const FALLBACK_PALETTE: MinimapPalette = {
-  shoulder: '#5e5d57',
-  asphalt: '#9a9890',
-  ink: '#f4f3ee',
-  accent: '#cad649',
-  outline: '#0e0e0c',
+  shoulder: '#c4b8a4',
+  asphalt: '#5c6b7c',
+  ink: '#1c2430',
+  accent: '#1d5bbf',
+  outline: '#fffaf3',
 }
 
 export type MarkerKind = 'player' | 'rival' | 'extra'

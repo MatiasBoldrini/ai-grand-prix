@@ -1,14 +1,14 @@
 import type { TrackDefinition } from '../types.ts'
 
 /**
- * Autódromo del Gradiente. A short loop: long straight, a chicane you can cut,
- * two hairpins. Corner data is the source of truth; the spline is derived.
+ * Autódromo de Potrerillos. A Mendoza foothill loop: long straight, a chicane
+ * you can cut, two hairpins. Corner data is the source of truth; the spline is derived.
  */
 export const track: TrackDefinition = {
   id: 'gradiente',
-  name: 'Autódromo del Gradiente',
+  name: 'Autódromo de Potrerillos',
   description:
-    'Recta larga, una chicana que se puede cortar y dos horquillas. El pasto te saca velocidad.',
+    'Recta larga entre el piedemonte, una chicana que se puede cortar y dos horquillas. El pasto te saca velocidad.',
   laps: 2,
   width: 16,
   runoff: 8,

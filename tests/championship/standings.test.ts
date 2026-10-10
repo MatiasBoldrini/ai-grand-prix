@@ -35,7 +35,7 @@ import {
 import { getScreen, menuLinks } from '../../src/ui/screen-registry.ts'
 import type { ScreenModule, UiFrame } from '../../src/ui/types.ts'
 
-const GRADIENTE = { id: 'gradiente', name: 'Autódromo del Gradiente' }
+const GRADIENTE = { id: 'gradiente', name: 'Autódromo de Potrerillos' }
 const COSTANERA = { id: 'costanera', name: 'Costanera' }
 const ENTRANTS: Entrant[] = [
   { id: PLAYER_ID, name: 'Vos' },
@@ -66,9 +66,9 @@ describe('championship calendar', () => {
       'gradiente',
     ])
     expect(planRounds([GRADIENTE, COSTANERA]).map((round) => round.trackName)).toEqual([
-      'Autódromo del Gradiente',
+      'Autódromo de Potrerillos',
       'Costanera',
-      'Autódromo del Gradiente',
+      'Autódromo de Potrerillos',
     ])
     expect(planRounds([])).toEqual([])
   })
@@ -136,7 +136,7 @@ describe('championship points', () => {
     expect(leadCopy(season, rows)).toBe('Te quedaste con el campeonato. Sumaste 21 puntos.')
     expect(primaryLabel(season)).toBe('Otro campeonato')
     expect(roundStatus(season, season.rounds[2]!)).toBe('Ganaste')
-    expect(roundTitle(season.rounds[0]!)).toBe('Fecha 1, Autódromo del Gradiente')
+    expect(roundTitle(season.rounds[0]!)).toBe('Fecha 1, Autódromo de Potrerillos')
   })
 
   it('names the rival when they take the title', () => {
@@ -157,7 +157,7 @@ describe('championship copy', () => {
     const single = createChampionship([GRADIENTE])
     const rows = standings(single, ENTRANTS)
     expect(leadCopy(single, rows)).toBe(
-      'Son tres fechas. El primero suma 8 puntos y el segundo, 5. Todas en Autódromo del Gradiente.',
+      'Son tres fechas. El primero suma 8 puntos y el segundo, 5. Todas en Autódromo de Potrerillos.',
     )
     expect(hintCopy(single, 'Cauto')).toBe(
       'El auto sale del garaje. El rival maneja al estilo Cauto. Al cerrar la fecha, volvé a entrar para ver la tabla.',

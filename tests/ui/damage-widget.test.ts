@@ -117,7 +117,7 @@ function frame(condition: number): UiFrame {
   }
   const snapshot: RaceSnapshot = {
     trackId: 'gradiente',
-    trackName: 'Autódromo del Gradiente',
+    trackName: 'Autódromo de Potrerillos',
     laps: 2,
     time: 4,
     finished: false,

@@ -33,9 +33,9 @@ export class RaceView {
     if (!renderer.getContext()) throw new Error('WebGL no está disponible')
     renderer.shadowMap.enabled = false
     renderer.outputColorSpace = SRGBColorSpace
-    renderer.setClearColor('#14140f', 1)
+    renderer.setClearColor('#b7d6ee', 1)
     const scene = new Scene()
-    const camera = new PerspectiveCamera(68, 1, 0.1, 480)
+    const camera = new PerspectiveCamera(68, 1, 0.1, 700)
     const layers = listLayers()
     const ctx: RenderContext = { scene, camera, renderer, loadModel }
     for (const layer of layers) await layer.setup(ctx)

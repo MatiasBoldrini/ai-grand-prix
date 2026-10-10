@@ -127,17 +127,17 @@ describe('menu copy', () => {
   it('describes the only circuit and the lineup the button will start', () => {
     expect(
       circuitBlurb({
-        name: 'Autódromo del Gradiente',
+        name: 'Autódromo de Potrerillos',
         description: 'Recta larga, una chicana que se puede cortar y dos horquillas.',
       }),
     ).toBe(
-      'Hoy se corre en Autódromo del Gradiente. Recta larga, una chicana que se puede cortar y dos horquillas.',
+      'Hoy se corre en Autódromo de Potrerillos. Recta larga, una chicana que se puede cortar y dos horquillas.',
     )
     expect(
       lineupText({
         carName: 'Flash 7B',
         personalityName: 'Cauto',
-        trackName: 'Autódromo del Gradiente',
+        trackName: 'Autódromo de Potrerillos',
         laps: 2,
       }),
     ).toBe('Hoy corrés con Flash 7B. El rival maneja al estilo Cauto. Se corren 2 vueltas.')
@@ -153,7 +153,7 @@ describe('menu copy', () => {
   })
 
   it('refuses to start when the car, the rival or the circuit is missing', () => {
-    expect(lineupText({})).toBe('No hay un modelo cargado. Sin auto no se puede largar.')
+    expect(lineupText({})).toBe('No hay un auto cargado. Sin auto no se puede largar.')
     expect(lineupText({ carName: 'Flash 7B' })).toContain('Todavía no hay un rival cargado.')
     expect(lineupText({ carName: 'Flash 7B', personalityName: 'Cauto' })).toContain(
       'No hay circuito cargado',
@@ -163,7 +163,7 @@ describe('menu copy', () => {
       canStartRace({
         carName: 'Flash 7B',
         personalityName: 'Cauto',
-        trackName: 'Autódromo del Gradiente',
+        trackName: 'Autódromo de Potrerillos',
         laps: 2,
       }),
     ).toBe(true)
@@ -177,7 +177,7 @@ describe('menu screen', () => {
     data.tracks = [
       {
         id: 'gradiente',
-        name: 'Autódromo del Gradiente',
+        name: 'Autódromo de Potrerillos',
         description: 'Recta larga y dos horquillas.',
         laps: 2,
       },
@@ -199,7 +199,7 @@ describe('menu screen', () => {
     expect(text).toContain('Hoy corrés con Flash 7B.')
     expect(text).toContain('Se corren 2 vueltas.')
     expect(text).not.toContain('en el circuito')
-    expect(text).toContain('Hoy se corre en Autódromo del Gradiente.')
+    expect(text).toContain('Hoy se corre en Autódromo de Potrerillos.')
     expect(text).not.toMatch(/[—–]|[\u{1F300}-\u{1FAFF}]/u)
     expect(nodes.some((node) => node.tag === 'input')).toBe(false)
     expect(ctx.updateState).not.toHaveBeenCalled()
@@ -214,7 +214,7 @@ describe('menu screen', () => {
     data.tracks = [
       {
         id: 'gradiente',
-        name: 'Autódromo del Gradiente',
+        name: 'Autódromo de Potrerillos',
         description: 'Recta larga.',
         laps: 2,
       },
@@ -235,7 +235,7 @@ describe('menu screen', () => {
     expect(radios[0]?.checked).toBe(true)
     expect(ctx.updateState).toHaveBeenCalledWith({ trackId: 'gradiente' })
     expect(nodes.map((node) => node.textContent).join('\n')).toContain(
-      'Se corren 2 vueltas en el circuito Autódromo del Gradiente.',
+      'Se corren 2 vueltas en el circuito Autódromo de Potrerillos.',
     )
     const field = nodes.find((node) => node.tag === 'fieldset')
     expect(field?.getAttribute('aria-labelledby')).toBe('menu-circuit-title')

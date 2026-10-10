@@ -22,9 +22,13 @@ export const layer: RenderLayer = {
     ensureGrass(context, frame)
     if (builtFor === frame.track.id) return
     clear(group)
+    group.add(gravelMesh(frame.track))
     group.add(roadMesh(frame.track))
+    group.add(centerMesh(frame.track))
     group.add(edgeMesh(frame.track, 1))
     group.add(edgeMesh(frame.track, -1))
+    group.add(curbMesh(frame.track, 1))
+    group.add(curbMesh(frame.track, -1))
     group.add(startMesh(frame.track))
     builtFor = frame.track.id
   },
@@ -36,13 +40,37 @@ export const layer: RenderLayer = {
 }
 
 function roadMesh(track: Track): Mesh {
-  return ribbon(track, track.width / 2, 0.02, '#3c3b36', 2)
+  return ribbon(track, track.width / 2, 0.03, '#3e4654', 2)
+}
+
+function gravelMesh(track: Track): Mesh {
+  const inner = track.width / 2
+  const outer = inner + Math.min(track.runoff, 4.2)
+  return ribbonBetween(track, -outer, outer, 0.012, '#c6a56e', 3)
+}
+
+function centerMesh(track: Track): Mesh {
+  return dashedRibbon(track, -0.12, 0.12, 0.045, [0.72, 0.52, 0.12], 3.2, 3.2)
 }
 
 function edgeMesh(track: Track, side: number): Mesh {
-  const outer = track.width / 2
-  const inner = outer - 0.35
-  return ribbonBetween(track, inner * side, outer * side, 0.04, '#d8d4c8', 2)
+  const outer = track.width / 2 - 0.08
+  const inner = outer - 0.28
+  return ribbonBetween(track, inner * side, outer * side, 0.05, '#f4f1ea', 2)
+}
+
+function curbMesh(track: Track, side: number): Mesh {
+  const inner = track.width / 2 + 0.02
+  const outer = inner + 0.72
+  const sign = side < 0 ? -1 : 1
+  return blockRibbon(
+    track,
+    inner * sign,
+    outer * sign,
+    0.055,
+    (index) => (index % 2 === 0 ? [0.82, 0.16, 0.13] : [0.96, 0.95, 0.92]),
+    1.6,
+  )
 }
 
 function startMesh(track: Track): Mesh {
@@ -59,8 +87,8 @@ function startMesh(track: Track): Mesh {
   for (let i = 0; i < 8; i += 1) {
     const t0 = -half + (half * 2 * i) / 8
     const t1 = -half + (half * 2 * (i + 1)) / 8
-    const lime = i % 2 === 0
-    const color = lime ? [0.79, 0.83, 0.29] : [0.08, 0.08, 0.07]
+    const light = i % 2 === 0
+    const color = light ? [0.95, 0.94, 0.9] : [0.12, 0.13, 0.15]
     const corners: Array<[number, number]> = [
       [t0, 0],
       [t1, 0],
@@ -88,6 +116,83 @@ function startMesh(track: Track): Mesh {
 
 function ribbon(track: Track, half: number, y: number, color: string, step: number): Mesh {
   return ribbonBetween(track, -half, half, y, color, step)
+}
+
+function blockRibbon(
+  track: Track,
+  lateralA: number,
+  lateralB: number,
+  y: number,
+  colorAt: (index: number) => [number, number, number],
+  step: number,
+): Mesh {
+  const positions: number[] = []
+  const colors: number[] = []
+  const indices: number[] = []
+  const count = Math.max(1, Math.ceil(track.length / step))
+  for (let i = 0; i < count; i += 1) {
+    const color = colorAt(i)
+    const start = sampleAt(track, (i / count) * track.length)
+    const end = sampleAt(track, (((i + 1) % count) / count) * track.length)
+    const base = positions.length / 3
+    pushCorner(positions, colors, start, lateralA, y, color)
+    pushCorner(positions, colors, start, lateralB, y, color)
+    pushCorner(positions, colors, end, lateralA, y, color)
+    pushCorner(positions, colors, end, lateralB, y, color)
+    indices.push(base, base + 1, base + 2, base + 1, base + 3, base + 2)
+  }
+  return coloredMesh(positions, colors, indices)
+}
+
+function dashedRibbon(
+  track: Track,
+  lateralA: number,
+  lateralB: number,
+  y: number,
+  color: [number, number, number],
+  dash: number,
+  gap: number,
+): Mesh {
+  const positions: number[] = []
+  const colors: number[] = []
+  const indices: number[] = []
+  const period = dash + gap
+  const count = Math.max(1, Math.floor(track.length / period))
+  for (let i = 0; i < count; i += 1) {
+    const origin = i * period
+    const start = sampleAt(track, origin)
+    const end = sampleAt(track, Math.min(track.length, origin + dash))
+    const base = positions.length / 3
+    pushCorner(positions, colors, start, lateralA, y, color)
+    pushCorner(positions, colors, start, lateralB, y, color)
+    pushCorner(positions, colors, end, lateralA, y, color)
+    pushCorner(positions, colors, end, lateralB, y, color)
+    indices.push(base, base + 1, base + 2, base + 1, base + 3, base + 2)
+  }
+  return coloredMesh(positions, colors, indices)
+}
+
+function pushCorner(
+  positions: number[],
+  colors: number[],
+  sample: { x: number; z: number; heading: number },
+  lateral: number,
+  y: number,
+  color: [number, number, number],
+): void {
+  const rx = Math.cos(sample.heading)
+  const rz = -Math.sin(sample.heading)
+  positions.push(sample.x + rx * lateral, y, sample.z + rz * lateral)
+  colors.push(color[0], color[1], color[2])
+}
+
+function coloredMesh(positions: number[], colors: number[], indices: number[]): Mesh {
+  const geometry = new BufferGeometry()
+  geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3))
+  geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3))
+  geometry.setIndex(indices)
+  geometry.computeVertexNormals()
+  return new Mesh(geometry, new MeshLambertMaterial({ vertexColors: true }))
 }
 
 function ribbonBetween(

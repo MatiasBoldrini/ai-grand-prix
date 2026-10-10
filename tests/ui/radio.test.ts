@@ -297,7 +297,7 @@ function race(partial: Partial<RaceSnapshot> = {}): RaceSnapshot {
   const { racers, events, laps, ...rest } = partial
   return {
     trackId: 'gradiente',
-    trackName: 'Autódromo del Gradiente',
+    trackName: 'Autódromo de Potrerillos',
     laps: laps ?? 2,
     time: 0,
     finished: false,

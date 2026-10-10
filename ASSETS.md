@@ -24,7 +24,7 @@ Source pack: Kenney Racing Kit, Collada, metre units, Y up. Only the red car is 
 | `public/assets/models/flagCheckers.dae`    | `flagCheckers.dae`    | Two flags                         |
 | `public/assets/models/pylon.dae`           | `pylon.dae`           | Shortcut cones                    |
 
-`public/favicon.svg` is a two-shape mark (ink square, lime circle) so the tab is not empty. It is not a Kenney file.
+`public/favicon.svg` is a two-shape mark (cream square, blue peak) so the tab is not empty. It is not a Kenney file.
 
 ## Audio
 

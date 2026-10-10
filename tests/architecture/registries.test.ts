@@ -12,9 +12,24 @@ describe('content registries', () => {
       listCars()
         .map((car) => car.id)
         .sort(),
-    ).toEqual(['flash-7b', 'reasoner-70b'])
+    ).toEqual(['deepseek', 'flash-7b', 'gemini', 'llama', 'mistral', 'openai', 'reasoner-70b'])
     expect(new Set(listCars().map((car) => car.id)).size).toBe(listCars().length)
     expect(listTracks().map((track) => track.id)).toContain('gradiente')
+    expect(listTracks().map((track) => track.name)).toEqual(
+      expect.arrayContaining([
+        'Autódromo de Potrerillos',
+        'Anillo de Uspallata',
+        'Circuito de la Costanera',
+      ]),
+    )
+    expect(listTracks().flatMap((track) => track.shortcuts.map((cut) => cut.id))).not.toContain(
+      'corte-latente',
+    )
+    for (const car of listCars()) {
+      expect(car.livery.wordmark.length).toBeGreaterThan(1)
+      expect(car.team.length).toBeGreaterThan(1)
+      expect(car.livery.stripe).not.toBe(car.livery.body)
+    }
     expect(listPersonalities().map((personality) => personality.id)).toContain('cauto')
     const hookIds = listHooks().map((raceHook) => raceHook.id)
     expect(new Set(hookIds).size).toBe(hookIds.length)

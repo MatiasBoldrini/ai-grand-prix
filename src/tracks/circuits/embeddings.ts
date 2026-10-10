@@ -1,15 +1,15 @@
 import type { TrackDefinition } from '../types.ts'
 
 /**
- * Anillo de Embeddings. A tight club loop, shorter than Gradiente:
+ * Anillo de Uspallata. A tight Andean club loop, shorter than Potrerillos:
  * one straight, corners that tighten toward the apex, and a chicane
  * with a straight cut. Corner data is the source of truth.
  */
 export const track: TrackDefinition = {
   id: 'embeddings',
-  name: 'Anillo de Embeddings',
+  name: 'Anillo de Uspallata',
   description:
-    'Pista corta y curvas cerradas. El corte latente salta la chicana si lo tomás limpio. El pasto te saca velocidad.',
+    'Pista corta entre la cordillera y curvas cerradas. El corte del arroyo salta la chicana si lo tomás limpio. El pasto te saca velocidad.',
   laps: 3,
   width: 14,
   runoff: 10,
@@ -17,8 +17,8 @@ export const track: TrackDefinition = {
   sampleSpacing: 1,
   shortcuts: [
     {
-      id: 'corte-latente',
-      name: 'Corte latente',
+      id: 'corte-del-arroyo',
+      name: 'Corte del arroyo',
       fromCorner: 43,
       toCorner: 61,
       halfWidth: 4.5,

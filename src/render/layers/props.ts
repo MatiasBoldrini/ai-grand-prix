@@ -1,15 +1,29 @@
-import { Color, InstancedMesh, Mesh, MeshLambertMaterial, Object3D } from 'three'
+import {
+  Color,
+  ConeGeometry,
+  CylinderGeometry,
+  InstancedMesh,
+  Mesh,
+  MeshLambertMaterial,
+  Object3D,
+} from 'three'
 import { sampleAt } from '../../tracks/spline.ts'
 import { bakeProp, loadModel } from '../models.ts'
 import type { RenderContext, RenderFrame, RenderLayer } from '../types.ts'
 
 const ASSETS = [
-  { url: '/assets/models/barrierRed.dae', size: 2.2, color: '#9a3b32' },
-  { url: '/assets/models/lightPostModern.dae', size: 7.5, color: '#cfc8b8' },
-  { url: '/assets/models/pylon.dae', size: 1.15, color: '#d6e41a' },
-  { url: '/assets/models/grandStand.dae', size: 12, color: '#8a8478' },
-  { url: '/assets/models/flagCheckers.dae', size: 5, color: '#f4f3ee' },
+  { url: '/assets/models/barrierRed.dae', size: 2.2, color: '#d94b3a' },
+  { url: '/assets/models/lightPostModern.dae', size: 7.5, color: '#f3efe6' },
+  { url: '/assets/models/pylon.dae', size: 1.15, color: '#f08c28' },
+  { url: '/assets/models/grandStand.dae', size: 12, color: '#d9d0c2' },
+  { url: '/assets/models/flagCheckers.dae', size: 5, color: '#f7f4ee' },
 ] as const
+
+const TRUNK = new CylinderGeometry(0.16, 0.26, 1.15, 5)
+TRUNK.translate(0, 0.58, 0)
+const CROWN = new ConeGeometry(1.15, 2.25, 6)
+CROWN.translate(0, 2.15, 0)
+const CROWN_COLORS = ['#3d8c46', '#2f7038', '#58a456', '#3f7d4a']
 
 let root: Object3D | null = null
 let builtFor = ''
@@ -62,17 +76,18 @@ async function rebuild(frame: RenderFrame, parent: Object3D): Promise<void> {
   const flag = geometries.get('/assets/models/flagCheckers.dae')
 
   if (barrier)
-    parent.add(repeat(barrier, '#9a3b32', points(frame, 12, frame.track.width / 2 + 1.1)))
-  if (light) parent.add(repeat(light, '#cfc8b8', points(frame, 40, frame.track.width / 2 + 5)))
-  if (pylon) parent.add(repeat(pylon, '#d6e41a', shortcutPylons(frame)))
+    parent.add(repeat(barrier, '#d94b3a', points(frame, 12, frame.track.width / 2 + 1.1)))
+  if (light) parent.add(repeat(light, '#f3efe6', points(frame, 40, frame.track.width / 2 + 5)))
+  if (pylon) parent.add(repeat(pylon, '#f08c28', shortcutPylons(frame)))
   if (stand) {
-    parent.add(single(stand, '#8a8478', frame, 28, frame.track.width / 2 + 11))
-    parent.add(single(stand, '#8a8478', frame, 52, frame.track.width / 2 + 11))
+    parent.add(single(stand, '#d9d0c2', frame, 28, frame.track.width / 2 + 11))
+    parent.add(single(stand, '#d9d0c2', frame, 52, frame.track.width / 2 + 11))
   }
   if (flag) {
-    parent.add(single(flag, '#f4f3ee', frame, 0, frame.track.width / 2 + 2))
-    parent.add(single(flag, '#f4f3ee', frame, 0, -(frame.track.width / 2 + 2)))
+    parent.add(single(flag, '#f7f4ee', frame, 0, frame.track.width / 2 + 2))
+    parent.add(single(flag, '#f7f4ee', frame, 0, -(frame.track.width / 2 + 2)))
   }
+  parent.add(treeField(frame))
   builtFor = trackId
 }
 
@@ -152,6 +167,66 @@ function single(
   mesh.position.set(sample.x + rx * lateral, 0, sample.z + rz * lateral)
   mesh.rotation.y = sample.heading + Math.PI / 2
   return mesh
+}
+
+function treeField(frame: RenderFrame): Object3D {
+  const spots = treeSpots(frame)
+  const group = new Object3D()
+  group.name = 'trees'
+  if (spots.length === 0) return group
+  const trunks = new InstancedMesh(
+    TRUNK,
+    new MeshLambertMaterial({ color: '#ffffff' }),
+    spots.length,
+  )
+  const crowns = new InstancedMesh(
+    CROWN,
+    new MeshLambertMaterial({ color: '#ffffff' }),
+    spots.length,
+  )
+  const dummy = new Object3D()
+  const tint = new Color()
+  spots.forEach((spot, index) => {
+    dummy.position.set(spot.x, 0, spot.z)
+    dummy.rotation.set(0, spot.yaw, 0)
+    dummy.scale.set(spot.scale, spot.scale, spot.scale)
+    dummy.updateMatrix()
+    trunks.setMatrixAt(index, dummy.matrix)
+    crowns.setMatrixAt(index, dummy.matrix)
+    trunks.setColorAt(index, tint.set('#6b4a32'))
+    const green = CROWN_COLORS[index % CROWN_COLORS.length] ?? '#3d8c46'
+    crowns.setColorAt(index, tint.set(green))
+  })
+  trunks.instanceMatrix.needsUpdate = true
+  crowns.instanceMatrix.needsUpdate = true
+  if (trunks.instanceColor) trunks.instanceColor.needsUpdate = true
+  if (crowns.instanceColor) crowns.instanceColor.needsUpdate = true
+  group.add(trunks, crowns)
+  return group
+}
+
+function treeSpots(frame: RenderFrame): { x: number; z: number; yaw: number; scale: number }[] {
+  const spots: { x: number; z: number; yaw: number; scale: number }[] = []
+  const every = 34
+  const lateral = frame.track.width / 2 + frame.track.runoff + 9
+  const count = Math.floor(frame.track.length / every)
+  for (let i = 0; i < count; i += 1) {
+    const sample = sampleAt(frame.track, i * every + 11)
+    if (sample.s < 40) continue
+    for (const side of [1, -1]) {
+      const stagger = side < 0 ? every * 0.45 : 0
+      const shifted = sampleAt(frame.track, sample.s + stagger)
+      const sx = Math.cos(shifted.heading)
+      const sz = -Math.sin(shifted.heading)
+      spots.push({
+        x: shifted.x + sx * (lateral + (i % 3)) * side,
+        z: shifted.z + sz * (lateral + (i % 3)) * side,
+        yaw: shifted.heading,
+        scale: 0.78 + ((i + (side > 0 ? 1 : 3)) % 5) * 0.09,
+      })
+    }
+  }
+  return spots
 }
 
 function clear(parent: Object3D): void {

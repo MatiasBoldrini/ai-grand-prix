@@ -1,6 +1,6 @@
 # AI Grand Prix
 
-Carrera de circuito en el navegador. Cada auto está afinado como un modelo: velocidad, contexto, razonamiento, creatividad y costo. El piloto elige un auto, corre contra un rival con personalidad propia y cierra las vueltas en el Autódromo del Gradiente.
+Carrera de circuito en el navegador. Cada auto lleva el ploteo de una escudería y conserva una ficha con velocidad, contexto, razonamiento, creatividad y costo. El piloto elige un auto, corre contra un rival con personalidad propia y cierra las vueltas en el Autódromo de Potrerillos.
 
 La interfaz está en español rioplatense. El código y los contratos están en inglés para que otros agentes puedan sumar features en paralelo. El mapa de módulos, las reglas de performance y el backlog están en [ARCHITECTURE.md](ARCHITECTURE.md). Licencias de los assets en [ASSETS.md](ASSETS.md).
 

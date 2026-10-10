@@ -63,7 +63,7 @@ export const screen: ScreenModule = {
     const summary = el('p')
     const stats = el('ul', 'stats')
     const carsField = el('fieldset', 'choices')
-    carsField.setAttribute('aria-label', 'Modelos')
+    carsField.setAttribute('aria-label', 'Escuderías')
     const rivalCopy = el('p')
     const setupCopy = el('p')
     setupCopy.setAttribute('aria-live', 'polite')
@@ -82,7 +82,7 @@ export const screen: ScreenModule = {
     const render = () => {
       const car = cars.find((item) => item.id === carId) ?? cars[0]
       if (!car) return
-      summary.textContent = `${car.team}. ${car.summary}`
+      summary.textContent = car.team === car.name ? car.summary : `${car.team}. ${car.summary}`
       stats.replaceChildren(...STATS.map(([key, label]) => statRow(label, String(car.stats[key]))))
       const personality = personalities.find((item) => item.id === personalityId)
       rivalCopy.textContent = personality
@@ -101,10 +101,10 @@ export const screen: ScreenModule = {
       commitSetup(bias)
     }
 
-    panel.append(el('h1', undefined, 'Garaje'), el('h2', undefined, 'Modelos'), carsField)
+    panel.append(el('h1', undefined, 'Garaje'), el('h2', undefined, 'Escuderías'), carsField)
     for (const car of cars) {
       carsField.append(
-        radio(car.id, car.name, 'car', car.id === carId, () => {
+        carChoice(car, car.id === carId, () => {
           carId = car.id
           ctx.updateState({ carId })
           render()
@@ -147,7 +147,7 @@ export const screen: ScreenModule = {
     panel.append(setupCopy, effects, el('p', 'hint', 'El rival corre de serie.'))
 
     panel.append(
-      button('Correr con este modelo', 'primary', () => {
+      button('Correr con este auto', 'primary', () => {
         remember()
         ctx.updateState({ carId, personalityId })
         ctx.resumeAudio()
@@ -163,6 +163,28 @@ export const screen: ScreenModule = {
     root.append(panel)
     return { unmount: () => panel.remove() }
   },
+}
+
+function carChoice(
+  car: { id: string; name: string; team: string; color: string },
+  checked: boolean,
+  onChange: () => void,
+): HTMLLabelElement {
+  const row = el('label', 'choice')
+  const input = el('input')
+  input.type = 'radio'
+  input.name = 'car'
+  input.value = car.id
+  input.checked = checked
+  input.addEventListener('change', onChange)
+  const swatch = el('span', 'choice-swatch')
+  swatch.style.background = car.color
+  swatch.setAttribute('aria-hidden', 'true')
+  const copy = el('span', 'choice-copy')
+  copy.append(el('span', undefined, car.name))
+  if (car.team !== car.name) copy.append(el('span', 'choice-team', car.team))
+  row.append(input, swatch, copy)
+  return row
 }
 
 function radio(

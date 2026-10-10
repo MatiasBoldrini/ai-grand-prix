@@ -1,7 +1,7 @@
 import type { TrackDefinition } from '../types.ts'
 
 /**
- * Circuito de la Costanera. A waterfront loop: a long rambla, a park chicane
+ * Circuito de la Costanera. A Buenos Aires waterfront loop: a long rambla, a park chicane
  * that the straight chord can cut, a fast lighthouse sweeper, a flat avenue and a
  * port hairpin with a long braking easement. Corner data is the source of
  * truth; the spline is derived.

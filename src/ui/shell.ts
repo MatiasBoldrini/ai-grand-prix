@@ -24,7 +24,7 @@ export class Shell {
     this.mounted = screen.mount(this.root, ctx)
     this.screenId = id
     const primary = this.root.querySelector<HTMLButtonElement>('.btn-primary')
-    primary?.focus()
+    primary?.focus({ preventScroll: true })
   }
 
   update(frame: UiFrame): void {

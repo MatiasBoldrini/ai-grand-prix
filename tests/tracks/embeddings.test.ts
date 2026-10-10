@@ -7,12 +7,12 @@ import { locate, sampleAt } from '../../src/tracks/spline.ts'
 import type { Track } from '../../src/tracks/types.ts'
 
 describe('embeddings', () => {
-  it('is a closed loop, shorter and tighter than Gradiente, with the latent cut', () => {
+  it('is a closed loop, shorter and tighter than Potrerillos, with the arroyo cut', () => {
     const track = getTrack('embeddings')
     const gradiente = getTrack('gradiente')
 
     expect(track.id).toBe('embeddings')
-    expect(track.name).toBe('Anillo de Embeddings')
+    expect(track.name).toBe('Anillo de Uspallata')
     expect(track.length).toBeGreaterThan(420)
     expect(track.length).toBeLessThan(gradiente.length)
     expect(minRadius(track)).toBeGreaterThan(14)
@@ -22,8 +22,8 @@ describe('embeddings', () => {
     const end = sampleAt(track, track.length - 0.01)
     expect(Math.hypot(start.x - end.x, start.z - end.z)).toBeLessThan(2)
 
-    const cut = track.shortcuts.find((shortcut) => shortcut.id === 'corte-latente')
-    expect(cut, 'shortcut id corte-latente').toBeDefined()
+    const cut = track.shortcuts.find((shortcut) => shortcut.id === 'corte-del-arroyo')
+    expect(cut, 'shortcut id corte-del-arroyo').toBeDefined()
     if (!cut) return
     const chord = Math.hypot(cut.x1 - cut.x0, cut.z1 - cut.z0)
     expect(chord).toBeGreaterThan(40)

@@ -44,7 +44,7 @@ function racer(
 function race(racers: RacerSnapshot[], extras: RacerSnapshot[] = []): RaceSnapshot {
   return {
     trackId: 'gradiente',
-    trackName: 'Autódromo del Gradiente',
+    trackName: 'Autódromo de Potrerillos',
     laps: 2,
     time: 90,
     finished: true,
@@ -111,7 +111,7 @@ describe('podium', () => {
       ]),
     )
     expect(view.lead).toBe('Llegaste primero. Reasoner 70B todavía no cerró.')
-    expect(view.detail).toBe('Se corrió en Autódromo del Gradiente, a 2 vueltas.')
+    expect(view.detail).toBe('Se corrió en Autódromo de Potrerillos, a 2 vueltas.')
     expect(view.rows.map((entry) => entry.finishLabel)).toEqual(['1:12.500', 'sin cerrar'])
     expect(view.rows[1]?.gapLabel).toBeNull()
     expect(view.rows[1]?.lapsLine).toBe('0:40.200')

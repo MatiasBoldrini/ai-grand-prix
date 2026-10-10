@@ -67,9 +67,10 @@ A screen with `menu: { label, variant, order }` shows up on the menu through `me
 
 ## Render and audio rules
 
-- No shadows, no post-processing, `antialias: false`, pixel ratio `min(devicePixelRatio, preferences.pixelRatioCap)` with a default cap of `1.25`.
-- Lambert materials. Repeated props are instanced. One merged mesh for a unique prop.
+- Daytime scene only: a gradient sky mesh, warm sun, hemisphere plus a little ambient, and linear fog for depth. No post-processing and no shadows, so an integrated GPU can hold 60 fps. `antialias: false`. Pixel ratio is `min(devicePixelRatio, preferences.pixelRatioCap)` with a default cap of `1.25`.
+- Lambert materials, and a basic material on the sky only. Repeated props are instanced. One merged mesh for a unique prop.
 - Draw-call target stays in the low dozens. Do not add per-frame geometry allocation on the hot path.
+- Car liveries are original color blocks and name text from `CarDefinition.livery`. Do not copy provider logos.
 - Engine pitch follows RPM. Screech is procedural noise (see `ASSETS.md`). Collisions use the `crash` clip. UI uses `click` and `confirm`.
 
 ## Testing and perf
@@ -83,32 +84,26 @@ A screen with `menu: { label, variant, order }` shows up on the menu through `me
 
 `PERF_FAIL_FRAME_MS` is 30 fps, half the target. Do not raise it to hide a regression. The in-game overlay is F3, or `/?fps=1`.
 
-The headless lap drives both cars with the AI on Gradiente (`tests/race/lap.test.ts`). `/?autodrive=1` is the same controller in the browser. CI (`.github/workflows/ci.yml`) runs lint, format, unit tests, build, and Playwright.
+The headless lap drives both cars with the AI on Potrerillos (`gradiente`, `tests/race/lap.test.ts`). `/?autodrive=1` is the same controller in the browser. CI (`.github/workflows/ci.yml`) runs lint, format, unit tests, build, and Playwright.
 
-## UI skills for later agents
+## UI
 
-The menu and HUD follow the Lime design system from [arla6ka/skills](https://github.com/arla6ka/skills/tree/main/skills). That repo is a design-system toolkit, not a landing-page kit. The files that applied here:
+The interface is a light daytime system. Tokens live in `src/ui/tokens.css` and are named by the job they do. A new custom property needs a `/* job | used by */` comment. Components read those roles, never a raw color. Reuse `src/ui/controls.ts` and the button classes in `src/ui/style.css`. One primary action per screen. The HUD is the exception: driving is the action, so the pause button stays ghost, drawn as a chip so it stays readable over the sky.
 
-- `systems/lime/SKILL.md`: one acid-lime accent, tokens by role, sentence case, weights 400/500/600, Hanken Grotesk, visible focus, no emoji, no em dash, no eyebrow labels, no row of equal stat cards.
-- `skills/token-mapping/SKILL.md`: name a token by the job it does. A new custom property in `src/ui/tokens.css` needs a `/* job | used by */` comment.
-- `skills/ui-review/SKILL.md`: review a UI change at 390 px and 1280 px, with keyboard focus and empty/error states.
-
-Do not install the Lime React package. This game is vanilla DOM. Reuse `src/ui/tokens.css`, `src/ui/controls.ts`, and the button classes in `src/ui/style.css`. One glowing primary per screen. The HUD is the exception: driving is the action, so the pause button stays ghost.
-
-Dark theme only (`data-theme="dark"`). Do not add a light theme without a product decision. World colors and car paint are not UI tokens. Car paint stays on `CarDefinition.color`.
+World colors and car paint are not UI tokens. The swatch stays on `CarDefinition.color`. The painted panels stay on `CarDefinition.livery`. Copy is Rioplatense, sentence case, with visible focus. No emoji and no em dash.
 
 ## Parallel feature backlog
 
 Each item is one agent. Touch only the files listed. Registries, `src/game/app.ts`, `src/race/world.ts`, `src/race/types.ts`, `src/race/contact.ts`, `src/physics`, `src/core`, `src/ui/tokens.css`, `src/ui/style.css`, and the existing e2e specs are shared. Leave them alone. Add a new test file rather than editing `tests/race/lap.test.ts` or `e2e/smoke.spec.ts`.
 
 1. **Costanera circuit.** Scope: a second closed circuit with its own shortcut, width, runoff, and laps. Files: `src/tracks/circuits/costanera.ts`, `tests/tracks/costanera.test.ts`. Done when `listTracks()` includes it, asphalt sits on the centre line, grass sits outside the runoff, and the menu offers the circuit because more than one track exists.
-2. **Embeddings circuit.** Scope: a third circuit, tighter and shorter than Gradiente. Files: `src/tracks/circuits/embeddings.ts`, `tests/tracks/embeddings.test.ts`. Done when length, closure, and the shortcut id are asserted, and the file does not edit `gradiente.ts`.
+2. **Uspallata circuit.** Scope: a third circuit, tighter and shorter than Potrerillos. Files: `src/tracks/circuits/embeddings.ts`, `tests/tracks/embeddings.test.ts`. Done when length, closure, and the shortcut id are asserted, and the file does not edit `gradiente.ts`.
 3. **Rival personalities.** Scope: `agresivo` (late braking, no shortcut) and `creativo` (takes the shortcut, looser line). Files: `src/ai/personalities/agresivo.ts`, `src/ai/personalities/creativo.ts`, `tests/ai/personalities.test.ts`. Done when both ids load, the garage lists them (it already does once `listPersonalities().length > 1`), and a headless run shows the creative car using the shortcut surface at least once.
 4. **Garage tuning.** Scope: a setup control that writes a `tune` hook so engine, grip, or tank change before the race. Files: `src/ui/screens/garage.ts`, `src/cars/tuning/setup.ts`. Done when the hook is identity for an untouched car and changes `engineForce` or `energyCapacity` when the player commits a setup. Do not edit `src/cars/apply-tuning.ts`.
 5. **Minimap.** Scope: a HUD widget that draws the spline and racer dots on a small canvas. Files: `src/ui/widgets/minimap.ts`. Done when the widget mounts from the registry during a race and reads only `UiFrame`. No new draw calls in Three.js.
 6. **Audio polish.** Scope: richer engine pitch, a real CC0 screech if one is added under `public/assets/audio/`, and a clearer music bed. Files: `src/audio/engine-voice.ts`, `src/audio/manager.ts`, `src/audio/clips/*`, `ASSETS.md` for any new file. Done when `AudioBus` method names stay the same and a missing file still falls back without throwing. Do not edit `src/audio/types.ts`.
 7. **Skid and dust.** Scope: a render layer for short-lived skid marks and grass dust, fed by `RenderPose.slip` and speed. Files: `src/render/layers/particles.ts`. Done when the layer order is `25`, repeated marks are instanced or capped (a fixed buffer, not unbounded growth), and `e2e/perf.spec.ts` still passes. Do not add shadows or post-processing.
-8. **Menu polish.** Scope: the landing layout only. Files: `src/ui/screens/menu.ts`, `src/ui/menu.css` (new, imported by the screen). Done when the primary action is still "Arrancá a correr", copy stays Rioplatense, and the Lime rules above still hold. Do not restyle the HUD.
+8. **Menu polish.** Scope: the landing layout only. Files: `src/ui/screens/menu.ts`, `src/ui/menu.css` (new, imported by the screen). Done when the primary action is still "Arrancá a correr" and copy stays Rioplatense. Do not restyle the HUD.
 9. **Touch controls.** Scope: on-screen pedals and a steer control for a phone. Files: `src/input/devices/touch.ts`. Done when the device priority is `3`, `active` is true only while a finger is down, and keyboard still works with no finger present. Do not edit `keyboard.ts` or `gamepad.ts`.
 10. **Ghost and best lap.** Scope: record the player pose during a race and replay the best lap as an `extras` racer. Files: `src/race/hooks/ghost.ts`, `src/ui/widgets/ghost-delta.ts`. Done when the hook imports types only from `src/race/types.ts`, stores samples on `world.extras` or its own module state, and the widget shows a delta. Do not replace `world.racers`.
 11. **Contact damage.** Scope: lower `condition` after wall and car hits so the engine force falls, and show it. Files: `src/race/hooks/damage.ts`, `src/ui/widgets/damage.ts`. Done when a wall event reduces that racer's `condition` and the HUD widget shows the loss. Do not edit `contact.ts` or the force scale in `world.ts`.

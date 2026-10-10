@@ -35,8 +35,8 @@ describe('minimap widget', () => {
   })
 
   it('names the map in rioplatense', () => {
-    expect(minimapLabel('Autódromo del Gradiente')).toBe(
-      'Minimapa de Autódromo del Gradiente. El punto con la flecha sos vos.',
+    expect(minimapLabel('Autódromo de Potrerillos')).toBe(
+      'Minimapa de Autódromo de Potrerillos. El punto con la flecha sos vos.',
     )
     expect(minimapLabel('Circuito')).not.toMatch(/\u2014|\u2013/)
   })
@@ -225,9 +225,9 @@ describe('minimap markers', () => {
     const player = pool[count - 1]
     const rival = pool[0]
     expect(player?.kind).toBe('player')
-    expect(player?.color).toBe('#d6e41a')
+    expect(player?.color).toBe('#1c1c1c')
     expect(rival?.kind).toBe('rival')
-    expect(rival?.color).toBe('#c45c28')
+    expect(rival?.color).toBe('#c4654a')
     for (const marker of pool.slice(0, count)) {
       expect(marker.x).toBeGreaterThanOrEqual(8)
       expect(marker.y).toBeGreaterThanOrEqual(8)
@@ -375,7 +375,7 @@ function racer(
 function snapshot(racers: RacerSnapshot[], extras: RacerSnapshot[] = []): RaceSnapshot {
   return {
     trackId: 'gradiente',
-    trackName: 'Autódromo del Gradiente',
+    trackName: 'Autódromo de Potrerillos',
     laps: 2,
     time: 1,
     finished: false,

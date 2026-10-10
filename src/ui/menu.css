@@ -14,6 +14,11 @@
   min-width: 0;
 }
 
+.menu h1 {
+  padding-bottom: 10px;
+  background: linear-gradient(var(--accent), var(--accent)) left bottom / 52px 3px no-repeat;
+}
+
 .menu h1,
 .menu h2,
 .menu .menu-lineup,
@@ -83,6 +88,7 @@
 .menu .choice:has(input:checked),
 .menu .choice:has(input:checked):active {
   background: var(--accent-wash);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .menu .menu-actions {

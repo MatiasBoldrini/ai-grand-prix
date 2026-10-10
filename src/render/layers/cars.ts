@@ -1,5 +1,7 @@
 import { Mesh, Object3D } from 'three'
-import { fallbackCar, fitObject, loadModel, paintBody } from '../models.ts'
+import { listCars } from '../../cars/registry.ts'
+import type { CarLivery } from '../../cars/types.ts'
+import { attachLivery, fallbackCar, fitObject, loadModel, paintBody } from '../models.ts'
 import type { RenderContext, RenderLayer, RenderPose } from '../types.ts'
 
 const templates = new Map<string, Object3D | null>()
@@ -62,12 +64,21 @@ function nodeFor(pose: RenderPose): Object3D {
   const existing = cars.get(pose.id)
   if (existing?.userData.ready === ready && existing.userData.color === pose.color) return existing
   if (existing) existing.removeFromParent()
-  const node = template ? template.clone(true) : fallbackCar(pose.color)
-  if (template) paintBody(node, pose.color)
+  const livery = liveryFor(pose.color)
+  const body = livery?.livery.body ?? pose.color
+  const node = template ? template.clone(true) : fallbackCar(body)
+  if (template) paintBody(node, body)
+  if (livery) attachLivery(node, livery.livery, livery.team)
   node.userData.ready = ready
   node.userData.color = pose.color
   cars.set(pose.id, node)
   return node
+}
+
+function liveryFor(color: string): { livery: CarLivery; team: string } | null {
+  const car = listCars().find((item) => item.color.toLowerCase() === color.toLowerCase())
+  if (!car) return null
+  return { livery: car.livery, team: car.team }
 }
 
 function spinWheels(node: Object3D, pose: RenderPose, dt: number): void {
