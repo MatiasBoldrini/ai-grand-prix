@@ -5,11 +5,18 @@
  * The shell delivers a finish snapshot to the mounted screen. That screen is
  * `results`, so the championship screen wraps its mount and calls
  * `ingestRaceSnapshot` once the player has armed a round from here.
+ *
+ * The season is also written to its own localStorage key. Opening the
+ * championship screen calls `loadSeason`, which reads that key back. A missing
+ * key starts a fresh season. Corrupt data is ignored and does the same.
  */
 
 export const SEASON_LENGTH = 3
 export const PLAYER_ID = 'player'
 export const RIVAL_ID = 'rival'
+
+/** Own key, separate from preferences and the garage setup. */
+export const SEASON_STORAGE_KEY = 'agp-championship'
 
 /** First and second. Anyone else in the field scores nothing. */
 const POINTS_BY_PLACE = [8, 5] as const
@@ -241,17 +248,40 @@ export function currentChampionship(): Championship | null {
   return seasonStore.current
 }
 
+/**
+ * Read the saved season when the screen opens.
+ * A missing or corrupt key replaces whatever is in memory, so clearing storage
+ * starts over. When storage itself cannot be read, the in-memory season stays.
+ */
 export function loadSeason(tracks: readonly TrackRef[]): Championship {
   const rounds = planRounds(tracks)
+  const read = readSeason()
+
+  if (read.kind === 'unavailable') return remember(rounds)
+
+  if (read.kind === 'hit' && (hasProgress(read.season) || sameRounds(read.season.rounds, rounds))) {
+    return adopt(read.season)
+  }
+
   const current = seasonStore.current
-  if (current && (hasProgress(current) || sameRounds(current.rounds, rounds))) return current
-  const created: Championship = { rounds, results: [], pendingIndex: null }
+  if (
+    read.kind === 'miss' &&
+    current &&
+    !hasProgress(current) &&
+    sameRounds(current.rounds, rounds)
+  ) {
+    return current
+  }
+
+  const created = blankSeason(rounds)
   seasonStore.current = created
+  persistSeason(created)
   return created
 }
 
 export function restartSeason(tracks: readonly TrackRef[]): Championship {
   seasonStore.current = createChampionship(tracks)
+  persistSeason(seasonStore.current)
   return seasonStore.current
 }
 
@@ -265,6 +295,7 @@ export function beginNextRound(): RoundPlan | null {
     if (!next) return null
     season = { ...season, pendingIndex: next.index }
     seasonStore.current = season
+    persistSeason(season)
   }
   const pending = season.pendingIndex
   if (pending === null) return null
@@ -277,11 +308,164 @@ export function ingestRaceSnapshot(race: ClassifiedRace | null | undefined): boo
   const next = recordFinish(current, race)
   if (next === current) return false
   seasonStore.current = next
+  persistSeason(next)
   return true
 }
 
 function hasProgress(championship: Championship): boolean {
   return championship.results.length > 0 || championship.pendingIndex !== null
+}
+
+function blankSeason(rounds: RoundPlan[]): Championship {
+  return { rounds, results: [], pendingIndex: null }
+}
+
+/** Keep the in-memory season when localStorage cannot be read. */
+function remember(rounds: RoundPlan[]): Championship {
+  const current = seasonStore.current
+  if (current && (hasProgress(current) || sameRounds(current.rounds, rounds))) return current
+  const created = blankSeason(rounds)
+  seasonStore.current = created
+  return created
+}
+
+/** Use the stored season. Return the same object when nothing changed. */
+function adopt(season: Championship): Championship {
+  const current = seasonStore.current
+  if (current && sameSeason(current, season)) return current
+  seasonStore.current = season
+  return season
+}
+
+type SeasonRead =
+  | { kind: 'hit'; season: Championship }
+  | { kind: 'miss' }
+  | { kind: 'corrupt' }
+  | { kind: 'unavailable' }
+
+function storage(): Storage | null {
+  try {
+    if (typeof localStorage === 'undefined') return null
+    return localStorage
+  } catch {
+    return null
+  }
+}
+
+function persistSeason(championship: Championship): void {
+  try {
+    storage()?.setItem(SEASON_STORAGE_KEY, JSON.stringify(championship))
+  } catch {
+    // Private mode can reject storage. The in-memory season still applies.
+  }
+}
+
+function readSeason(): SeasonRead {
+  const box = storage()
+  if (!box) return { kind: 'unavailable' }
+  let raw: string | null
+  try {
+    raw = box.getItem(SEASON_STORAGE_KEY)
+  } catch {
+    return { kind: 'unavailable' }
+  }
+  if (raw === null) return { kind: 'miss' }
+  try {
+    const season = decodeSeason(raw)
+    return season ? { kind: 'hit', season } : { kind: 'corrupt' }
+  } catch {
+    return { kind: 'corrupt' }
+  }
+}
+
+function decodeSeason(raw: string): Championship | null {
+  const parsed: unknown = JSON.parse(raw)
+  if (!isRecord(parsed)) return null
+  const rounds = decodeRounds(parsed.rounds)
+  if (!rounds) return null
+  const results = decodeResults(parsed.results, rounds)
+  if (!results) return null
+  const pendingIndex = decodePending(parsed.pendingIndex, rounds)
+  if (pendingIndex === undefined) return null
+  return { rounds, results, pendingIndex }
+}
+
+function decodeRounds(value: unknown): RoundPlan[] | null {
+  if (!Array.isArray(value)) return null
+  const rounds: RoundPlan[] = []
+  const seen = new Set<number>()
+  for (const item of value) {
+    if (!isRecord(item)) return null
+    if (!isIndex(item.index) || seen.has(item.index)) return null
+    if (!isLabel(item.trackId) || !isLabel(item.trackName)) return null
+    seen.add(item.index)
+    rounds.push({ index: item.index, trackId: item.trackId, trackName: item.trackName })
+  }
+  return rounds
+}
+
+function decodeResults(value: unknown, rounds: readonly RoundPlan[]): RoundResult[] | null {
+  if (!Array.isArray(value)) return null
+  const results: RoundResult[] = []
+  const seen = new Set<number>()
+  for (const item of value) {
+    if (!isRecord(item)) return null
+    if (!isIndex(item.index) || seen.has(item.index)) return null
+    if (!rounds.some((round) => round.index === item.index)) return null
+    if (!isLabel(item.trackId) || !isLabel(item.trackName)) return null
+    const finishers = decodeFinishers(item.finishers)
+    if (!finishers) return null
+    seen.add(item.index)
+    results.push({
+      index: item.index,
+      trackId: item.trackId,
+      trackName: item.trackName,
+      finishers,
+    })
+  }
+  return results
+}
+
+function decodeFinishers(value: unknown): ClassifiedRacer[] | null {
+  if (!Array.isArray(value)) return null
+  const finishers: ClassifiedRacer[] = []
+  for (const item of value) {
+    if (!isRecord(item)) return null
+    if (!isLabel(item.id) || typeof item.name !== 'string') return null
+    if (!isIndex(item.position) || item.position < 1) return null
+    if (!isFinishTime(item.finishTime)) return null
+    finishers.push({
+      id: item.id,
+      name: item.name,
+      position: item.position,
+      finishTime: item.finishTime,
+    })
+  }
+  return finishers
+}
+
+/** `undefined` means the field is unusable. `null` is a real empty pending round. */
+function decodePending(value: unknown, rounds: readonly RoundPlan[]): number | null | undefined {
+  if (value === null) return null
+  if (!isIndex(value)) return undefined
+  if (!rounds.some((round) => round.index === value)) return undefined
+  return value
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isIndex(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0
+}
+
+function isLabel(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0
+}
+
+function isFinishTime(value: unknown): value is number | null {
+  return value === null || (typeof value === 'number' && Number.isFinite(value))
 }
 
 function sameRounds(left: readonly RoundPlan[], right: readonly RoundPlan[]): boolean {
@@ -292,6 +476,43 @@ function sameRounds(left: readonly RoundPlan[], right: readonly RoundPlan[]): bo
       other?.index === round.index &&
       other.trackId === round.trackId &&
       other.trackName === round.trackName
+    )
+  })
+}
+
+function sameSeason(left: Championship, right: Championship): boolean {
+  return (
+    left.pendingIndex === right.pendingIndex &&
+    sameRounds(left.rounds, right.rounds) &&
+    sameResults(left.results, right.results)
+  )
+}
+
+function sameResults(left: readonly RoundResult[], right: readonly RoundResult[]): boolean {
+  if (left.length !== right.length) return false
+  return left.every((result, index) => {
+    const other = right[index]
+    return (
+      other?.index === result.index &&
+      other.trackId === result.trackId &&
+      other.trackName === result.trackName &&
+      sameFinishers(result.finishers, other.finishers)
+    )
+  })
+}
+
+function sameFinishers(
+  left: readonly ClassifiedRacer[],
+  right: readonly ClassifiedRacer[],
+): boolean {
+  if (left.length !== right.length) return false
+  return left.every((racer, index) => {
+    const other = right[index]
+    return (
+      other?.id === racer.id &&
+      other.name === racer.name &&
+      other.position === racer.position &&
+      other.finishTime === racer.finishTime
     )
   })
 }

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { listTracks } from '../../src/tracks/registry.ts'
 import {
   PLAYER_ID,
@@ -19,6 +19,7 @@ import {
   resetChampionshipStore,
   restartSeason,
   roundStatus,
+  SEASON_STORAGE_KEY,
   roundTitle,
   standingText,
   standings,
@@ -324,6 +325,219 @@ describe('championship screen', () => {
     expect(standings(currentChampionship()!, ENTRANTS)[0]?.id).toBe(RIVAL_ID)
   })
 })
+
+describe('championship persistence', () => {
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', memoryStorage(new Map()))
+    resetChampionshipStore()
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    resetChampionshipStore()
+  })
+
+  it('keeps an abandoned round under its own key and reads it when the screen opens', () => {
+    expect(SEASON_STORAGE_KEY).toBe('agp-championship')
+    expect(SEASON_STORAGE_KEY).not.toBe('agp-preferences')
+    expect(SEASON_STORAGE_KEY).not.toBe('agp-garage-setup')
+
+    loadSeason([GRADIENTE, COSTANERA])
+    expect(beginNextRound()?.index).toBe(0)
+    expect(saved()?.pendingIndex).toBe(0)
+
+    resetChampionshipStore()
+    const restored = loadSeason([GRADIENTE, COSTANERA])
+    expect(restored.pendingIndex).toBe(0)
+    expect(restored.results).toEqual([])
+    expect(roundStatus(restored, restored.rounds[0]!)).toBe('En curso')
+    expect(primaryLabel(restored)).toBe('Retomá la fecha 1')
+    expect(loadSeason([GRADIENTE, COSTANERA])).toBe(restored)
+  })
+
+  it('keeps points from a finished round after a reload', () => {
+    loadSeason([GRADIENTE])
+    beginNextRound()
+    expect(ingestRaceSnapshot(finish(1))).toBe(true)
+    expect(saved()?.results).toHaveLength(1)
+
+    resetChampionshipStore()
+    const restored = loadSeason([GRADIENTE])
+    expect(restored.pendingIndex).toBeNull()
+    expect(standings(restored, ENTRANTS)[0]).toMatchObject({ id: PLAYER_ID, points: 8, wins: 1 })
+    expect(roundStatus(restored, restored.rounds[0]!)).toBe('Ganaste')
+    expect(primaryLabel(restored)).toBe('Arrancá la fecha 2')
+  })
+
+  it('reads the saved season again when the screen opens, even if memory differs', () => {
+    loadSeason([GRADIENTE])
+    beginNextRound()
+    const stored = saved()
+    if (!stored) throw new Error('missing season')
+    const round = stored.rounds[0]
+    if (!round) throw new Error('missing round')
+    stored.pendingIndex = null
+    stored.results = [
+      {
+        index: round.index,
+        trackId: round.trackId,
+        trackName: round.trackName,
+        finishers: [
+          { id: PLAYER_ID, name: 'Vos', position: 1, finishTime: 41 },
+          { id: RIVAL_ID, name: 'Reasoner 70B', position: 2, finishTime: 42 },
+        ],
+      },
+    ]
+    localStorage.setItem(SEASON_STORAGE_KEY, JSON.stringify(stored))
+
+    const opened = loadSeason([GRADIENTE])
+    expect(opened.pendingIndex).toBeNull()
+    expect(standings(opened, ENTRANTS)[0]?.points).toBe(8)
+    expect(roundStatus(opened, opened.rounds[0]!)).toBe('Ganaste')
+  })
+
+  it('starts fresh when the key is cleared, including while the old season is still in memory', () => {
+    loadSeason([GRADIENTE])
+    beginNextRound()
+    ingestRaceSnapshot(finish(2))
+    localStorage.removeItem(SEASON_STORAGE_KEY)
+
+    const fresh = loadSeason([GRADIENTE])
+    expect(fresh.pendingIndex).toBeNull()
+    expect(fresh.results).toEqual([])
+    expect(standings(fresh, ENTRANTS).map((row) => row.points)).toEqual([0, 0])
+    expect(primaryLabel(fresh)).toBe('Arrancá la fecha 1')
+    expect(roundStatus(fresh, fresh.rounds[0]!)).toBe('Pendiente')
+    expect(saved()?.results).toEqual([])
+  })
+
+  it('lets a finished championship start over and stay over after a reload', () => {
+    loadSeason([GRADIENTE])
+    for (const place of [1, 1, 2] as const) {
+      beginNextRound()
+      ingestRaceSnapshot(finish(place))
+    }
+    expect(isComplete(currentChampionship()!)).toBe(true)
+
+    const restarted = restartSeason([GRADIENTE])
+    expect(restarted.results).toEqual([])
+    expect(primaryLabel(restarted)).toBe('Arrancá la fecha 1')
+
+    resetChampionshipStore()
+    const restored = loadSeason([GRADIENTE])
+    expect(restored.results).toEqual([])
+    expect(restored.pendingIndex).toBeNull()
+    expect(standings(restored, ENTRANTS).every((row) => row.points === 0)).toBe(true)
+  })
+
+  it('ignores corrupt data and starts a fresh season', () => {
+    loadSeason([GRADIENTE])
+    beginNextRound()
+    const junk = [
+      '{',
+      'null',
+      '[]',
+      JSON.stringify({ rounds: 'no' }),
+      JSON.stringify({ rounds: [], results: [], pendingIndex: '1' }),
+      JSON.stringify({
+        rounds: [{ index: 0, trackId: 'gradiente', trackName: 'Autódromo del Gradiente' }],
+        results: [],
+        pendingIndex: 4,
+      }),
+      JSON.stringify({
+        rounds: [{ index: 0, trackId: 'gradiente', trackName: 'Autódromo del Gradiente' }],
+        results: [
+          {
+            index: 0,
+            trackId: 'gradiente',
+            trackName: 'Autódromo del Gradiente',
+            finishers: [{ id: 'player', name: 'Vos', position: 1.5, finishTime: 40 }],
+          },
+        ],
+        pendingIndex: null,
+      }),
+    ]
+    for (const raw of junk) {
+      localStorage.setItem(SEASON_STORAGE_KEY, raw)
+      resetChampionshipStore()
+      expect(() => loadSeason([GRADIENTE])).not.toThrow()
+      const season = currentChampionship()
+      expect(season?.results).toEqual([])
+      expect(season?.pendingIndex).toBeNull()
+      expect(primaryLabel(season!)).toBe('Arrancá la fecha 1')
+    }
+  })
+
+  it('keeps an extra field on an otherwise valid season', () => {
+    const season = loadSeason([GRADIENTE])
+    const raw = JSON.parse(localStorage.getItem(SEASON_STORAGE_KEY) ?? '{}') as {
+      note?: string
+    }
+    raw.note = 'extra'
+    localStorage.setItem(SEASON_STORAGE_KEY, JSON.stringify(raw))
+    resetChampionshipStore()
+    const restored = loadSeason([GRADIENTE])
+    expect(restored.rounds.map((round) => round.trackId)).toEqual(
+      season.rounds.map((round) => round.trackId),
+    )
+    expect(restored.pendingIndex).toBeNull()
+  })
+
+  it('does not throw when storage rejects the write, and keeps memory if the read throws', () => {
+    vi.stubGlobal('localStorage', {
+      getItem: () => null,
+      setItem: () => {
+        throw new Error('denied')
+      },
+      removeItem: () => {
+        throw new Error('denied')
+      },
+    })
+    expect(() => {
+      loadSeason([GRADIENTE])
+      beginNextRound()
+    }).not.toThrow()
+    expect(currentChampionship()?.pendingIndex).toBe(0)
+
+    vi.stubGlobal('localStorage', {
+      getItem: () => {
+        throw new Error('blocked')
+      },
+      setItem: () => {
+        throw new Error('blocked')
+      },
+      removeItem: () => {
+        throw new Error('blocked')
+      },
+    })
+    expect(() => loadSeason([GRADIENTE])).not.toThrow()
+    expect(currentChampionship()?.pendingIndex).toBe(0)
+    expect(roundStatus(currentChampionship()!, currentChampionship()!.rounds[0]!)).toBe('En curso')
+  })
+})
+
+function saved(): Championship | null {
+  const raw = localStorage.getItem(SEASON_STORAGE_KEY)
+  if (!raw) return null
+  return JSON.parse(raw) as Championship
+}
+
+function memoryStorage(box: Map<string, string>): Storage {
+  return {
+    get length() {
+      return box.size
+    },
+    clear: () => box.clear(),
+    getItem: (key) => box.get(key) ?? null,
+    key: (index) => [...box.keys()][index] ?? null,
+    removeItem: (key) => {
+      box.delete(key)
+    },
+    setItem: (key, value) => {
+      box.set(key, value)
+    },
+  }
+}
 
 function idleContext(): Pick<
   Parameters<typeof startChampionshipRound>[0],
