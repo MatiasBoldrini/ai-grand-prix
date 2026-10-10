@@ -1,4 +1,5 @@
 import { clamp } from '../../core/math.ts'
+import { escapePauseSuppressed } from '../escape-guard.ts'
 import { IDLE_SAMPLE, type DeviceSample, type InputDevice } from '../types.ts'
 
 export const device: InputDevice = {
@@ -26,7 +27,9 @@ function onKeyDown(event: KeyboardEvent): void {
   if (event.repeat && (event.code === 'Escape' || event.code === 'F3' || event.code === 'KeyR'))
     return
   down.add(event.code)
-  if (event.code === 'Escape') pauseEdge = true
+  // Pointer lock swallows Escape in some browsers and delivers it in others.
+  // The mouse device pauses on that unlock and suppresses the duplicate edge.
+  if (event.code === 'Escape' && !escapePauseSuppressed()) pauseEdge = true
   if (event.code === 'F3') {
     fpsEdge = true
     event.preventDefault()

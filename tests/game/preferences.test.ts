@@ -40,6 +40,7 @@ describe('preferences', () => {
       masterVolume: 0.8,
       music: true,
       pixelRatioCap: 1.25,
+      lookSensitivity: 1,
     })
   })
 
@@ -50,6 +51,7 @@ describe('preferences', () => {
       masterVolume: 0.4,
       music: false,
       pixelRatioCap: 1,
+      lookSensitivity: 1,
     })
 
     vi.resetModules()
@@ -58,6 +60,7 @@ describe('preferences', () => {
       masterVolume: 0.4,
       music: false,
       pixelRatioCap: 1,
+      lookSensitivity: 1,
     })
   })
 
@@ -93,6 +96,7 @@ describe('preferences', () => {
       masterVolume: 1,
       music: true,
       pixelRatioCap: 2,
+      lookSensitivity: 1,
     })
     prefs.updatePreferences({ masterVolume: -1, pixelRatioCap: 0.2 })
     expect(prefs.preferences.masterVolume).toBe(0)
@@ -100,6 +104,12 @@ describe('preferences', () => {
     prefs.updatePreferences({ masterVolume: Number.NaN, pixelRatioCap: Number.POSITIVE_INFINITY })
     expect(prefs.preferences.masterVolume).toBe(0)
     expect(prefs.preferences.pixelRatioCap).toBe(1)
+    prefs.updatePreferences({ lookSensitivity: 9 })
+    expect(prefs.preferences.lookSensitivity).toBe(1.8)
+    prefs.updatePreferences({ lookSensitivity: 0 })
+    expect(prefs.preferences.lookSensitivity).toBe(0.4)
+    prefs.updatePreferences({ lookSensitivity: Number.NaN })
+    expect(prefs.preferences.lookSensitivity).toBe(0.4)
   })
 
   it('falls back when stored JSON is corrupt or partial', async () => {
@@ -117,6 +127,7 @@ describe('preferences', () => {
       masterVolume: 0.8,
       music: true,
       pixelRatioCap: 1.25,
+      lookSensitivity: 1,
     })
   })
 

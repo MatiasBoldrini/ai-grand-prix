@@ -60,6 +60,7 @@ test.describe('desktop', () => {
       masterVolume: 0.4,
       music: false,
       pixelRatioCap: 1,
+      lookSensitivity: 1,
     })
 
     await page.getByRole('button', { name: 'Listo' }).click()
