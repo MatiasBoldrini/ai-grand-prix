@@ -7,7 +7,7 @@ import { listHooks } from '../../src/race/hook-registry.ts'
 import { listTracks } from '../../src/tracks/registry.ts'
 
 describe('content registries', () => {
-  it('discovers cars, the track and the rival personality by file', () => {
+  it('discovers cars, the track, the rival personality and the damage hook by file', () => {
     expect(
       listCars()
         .map((car) => car.id)
@@ -16,7 +16,9 @@ describe('content registries', () => {
     expect(new Set(listCars().map((car) => car.id)).size).toBe(listCars().length)
     expect(listTracks().map((track) => track.id)).toContain('gradiente')
     expect(listPersonalities().map((personality) => personality.id)).toContain('cauto')
-    expect(listHooks()).toEqual([])
+    const hookIds = listHooks().map((raceHook) => raceHook.id)
+    expect(new Set(hookIds).size).toBe(hookIds.length)
+    expect(hookIds).toContain('damage')
   })
 
   it('leaves physics params unchanged when no tuning file is present', () => {
