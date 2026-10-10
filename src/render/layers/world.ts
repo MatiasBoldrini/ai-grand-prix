@@ -90,11 +90,12 @@ function makeSky(): Mesh {
     side: BackSide,
     fog: false,
     depthWrite: false,
-    depthTest: false,
+    depthTest: true,
   })
   const mesh = new Mesh(geometry, material)
   mesh.frustumCulled = false
-  mesh.renderOrder = -1
+  // After the ground, so the gradient only fills pixels the track did not cover.
+  mesh.renderOrder = 1
   mesh.name = 'sky'
   return mesh
 }

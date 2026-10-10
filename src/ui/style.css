@@ -432,7 +432,7 @@ h2 {
     position: absolute;
     top: 28px;
     left: 28px;
-    width: min(36rem, calc(100% - 56px));
+    width: min(32rem, calc(100% - 56px));
     max-height: calc(100dvh - 56px);
     border-radius: var(--radius-panel);
   }
@@ -441,6 +441,14 @@ h2 {
 /* Short landscape: the wheel and the pedals own the bottom edge, and
    respawn sits under the position readout. Keep the lap numbers between them. */
 @media (max-height: 460px) {
+  .hud .readout {
+    padding: 4px 8px;
+  }
+
+  .hud .readout b {
+    font-size: 20px;
+  }
+
   .hud-telemetry {
     position: absolute;
     top: 128px;
