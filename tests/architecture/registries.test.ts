@@ -18,7 +18,7 @@ describe('content registries', () => {
     expect(listPersonalities().map((personality) => personality.id)).toContain('cauto')
     const hookIds = listHooks().map((raceHook) => raceHook.id)
     expect(new Set(hookIds).size).toBe(hookIds.length)
-    expect(hookIds).toContain('damage')
+    expect(hookIds).toEqual(expect.arrayContaining(['damage', 'ghost']))
   })
 
   it('leaves physics params unchanged when no tuning file is present', () => {
