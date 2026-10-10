@@ -72,6 +72,13 @@ let dirty = false
 let lastTime = -1
 let anchorTime = Number.NaN
 let anchorOdometer = 0
+/** Respawn skips the lap. The live delta stays frozen until the next lap starts. */
+let suspended = false
+/**
+ * Grace only rises inside `respawnRacer` (to 1.4). R runs that before `stepRace`,
+ * which clears events, so the hook has to notice the grace step itself.
+ */
+let prevGrace = Number.NaN
 
 export const hook: RaceHook = {
   id: 'ghost',
@@ -92,6 +99,8 @@ export function resetGhostMemory(): void {
   lastTime = -1
   anchorTime = Number.NaN
   anchorOdometer = 0
+  suspended = false
+  prevGrace = Number.NaN
   readout.phase = 'recording'
   readout.delta = null
   readout.bestLap = null
@@ -106,15 +115,18 @@ function stepGhost(world: RaceWorld, dt: number): void {
     count = 0
     dirty = false
     anchorTime = Number.NaN
+    suspended = false
+    prevGrace = Number.NaN
   }
 
   const lapped = world.events.some((event) => event.type === 'lap' && event.racerId === player.id)
-  const respawned = world.events.some(
-    (event) => event.type === 'respawn' && event.racerId === player.id,
-  )
+  const respawned =
+    world.events.some((event) => event.type === 'respawn' && event.racerId === player.id) ||
+    (Number.isFinite(prevGrace) && player.grace > prevGrace + 1e-3)
 
   // The lap clock has already rolled when the event arrives, so commit the
   // buffer from the lap that just ended before sampling the new one.
+  let lapOpened = false
   if (lapped) {
     const lapTime = player.lapTimes[player.lapTimes.length - 1]
     if (
@@ -128,24 +140,34 @@ function stepGhost(world: RaceWorld, dt: number): void {
     }
     dirty = false
     beginLap(player)
+    lapOpened = true
   } else if (player.lapStartedAt !== anchorTime) {
     beginLap(player)
+    lapOpened = true
   }
 
   if (respawned) {
     dirty = true
     count = 0
+    suspended = true
+    // A teleport on the lap that just opened has no honest delta yet.
+    if (lapOpened) {
+      readout.phase = 'recording'
+      readout.delta = null
+    }
   }
 
   if (!dirty && !player.finished) record(player, world.time)
   lastTime = world.time
   if (!player.finished) publish(world, player)
+  prevGrace = player.grace
 }
 
 function beginLap(player: Racer): void {
   count = 0
   anchorTime = player.lapStartedAt
   anchorOdometer = player.odometer
+  suspended = false
 }
 
 function record(player: Racer, time: number): void {
@@ -205,9 +227,20 @@ function publish(world: RaceWorld, player: Racer): void {
   }
 
   const elapsed = Math.max(0, world.time - player.lapStartedAt)
-  const ghostTime = timeAtDist(best.samples, player.odometer - anchorOdometer, best.lapTime)
-  readout.phase = 'comparing'
-  readout.delta = elapsed - ghostTime
+  if (suspended) {
+    // The teleport moved the car. Keep the last honest gap, or stay on
+    // Grabando, until the next lap is driving normally.
+    const frozen =
+      readout.phase === 'comparing' && readout.delta !== null && Number.isFinite(readout.delta)
+    if (!frozen) {
+      readout.phase = 'recording'
+      readout.delta = null
+    }
+  } else {
+    const ghostTime = timeAtDist(best.samples, player.odometer - anchorOdometer, best.lapTime)
+    readout.phase = 'comparing'
+    readout.delta = elapsed - ghostTime
+  }
 
   const end = best.samples[best.samples.length - 1]
   if (!end || elapsed > end.t) return

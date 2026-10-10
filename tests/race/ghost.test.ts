@@ -6,7 +6,7 @@ import { getPersonality } from '../../src/ai/registry.ts'
 import { getCar } from '../../src/cars/registry.ts'
 import { hook, readGhostDelta, resetGhostMemory } from '../../src/race/hooks/ghost.ts'
 import { listHooks } from '../../src/race/hook-registry.ts'
-import { createRace, stepRace } from '../../src/race/world.ts'
+import { createRace, respawnRacer, stepRace } from '../../src/race/world.ts'
 import type { RaceWorld, Racer, RacerSnapshot } from '../../src/race/types.ts'
 import { getTrack } from '../../src/tracks/registry.ts'
 import { formatGhostReadout } from '../../src/ui/widgets/ghost-delta.ts'
@@ -109,6 +109,89 @@ describe('ghost and best lap', () => {
     closeLap(world, 31, 9, 300, 40)
     expect(readGhostDelta().bestLap).toBe(9)
     expect(world.extras.some((extra) => extra.id === 'ghost')).toBe(true)
+  })
+
+  it('does not turn a respawn teleport into time gained', () => {
+    const world = createWorld()
+    recordLine(world, 0, 1000)
+    closeLap(world, 10, 10, 100, 1000)
+    sample(world, 16, 140, 5000)
+    const before = readGhostDelta()
+    expect(before.phase).toBe('comparing')
+    expect(before.delta).toBeCloseTo(2, 5)
+
+    const player = playerOf(world)
+    world.time = 17
+    world.events = [{ type: 'respawn', racerId: player.id, time: world.time }]
+    player.odometer = 500
+    player.lastS = 400
+    player.vehicle.x = 30
+    player.vehicle.z = -10
+    advance(world)
+
+    const frozen = readGhostDelta()
+    expect(frozen.phase).toBe('comparing')
+    expect(frozen.delta).toBeCloseTo(2, 5)
+    expect(formatGhostReadout(frozen).value).toBe('+2.000 s')
+
+    sample(world, 25, 800, 80)
+    expect(readGhostDelta().phase).toBe('comparing')
+    expect(readGhostDelta().delta).toBeCloseTo(2, 5)
+    expect(readGhostDelta().bestLap).toBe(10)
+
+    closeLap(world, 26, 3, 900, 80)
+    expect(readGhostDelta().bestLap).toBe(10)
+
+    sample(world, 28, 910, 90)
+    const behind = readGhostDelta()
+    expect(behind.phase).toBe('comparing')
+    expect(behind.bestLap).toBe(10)
+    expect(behind.delta).toBeCloseTo(1, 5)
+    expect(formatGhostReadout(behind).label).toBe('Atrás')
+
+    sample(world, 29, 960, 140)
+    const ahead = readGhostDelta()
+    expect(ahead.phase).toBe('comparing')
+    expect(ahead.bestLap).toBe(10)
+    expect(ahead.delta).toBeCloseTo(-3, 5)
+    expect(formatGhostReadout(ahead).label).toBe('Adelante')
+  })
+
+  it('freezes the delta when R drops the respawn event before the hook', () => {
+    const world = createWorld()
+    recordLine(world, 0, 1000)
+    closeLap(world, 10, 10, 100, 1000)
+    sample(world, 16, 140, 5000)
+    expect(readGhostDelta().delta).toBeCloseTo(2, 5)
+
+    const player = playerOf(world)
+    world.time = 17
+    respawnRacer(world, player)
+    player.odometer += 300
+    stepRace(world, { throttle: 1, brake: 0, steer: 0 }, 1 / 60)
+
+    const after = readGhostDelta()
+    expect(after.phase).toBe('comparing')
+    expect(after.delta).toBeCloseTo(2, 5)
+    expect(after.bestLap).toBe(10)
+    expect(formatGhostReadout(after).value).not.toBe('Grabando')
+  })
+
+  it('shows Grabando when a respawn lands before any honest delta', () => {
+    const world = createWorld()
+    recordLine(world, 0, 1000)
+    const player = playerOf(world)
+    world.time = 9
+    world.events = [{ type: 'respawn', racerId: player.id, time: world.time }]
+    player.odometer = 400
+    player.lastS = 250
+    advance(world)
+    expect(readGhostDelta()).toMatchObject({ phase: 'recording', delta: null, bestLap: null })
+    expect(formatGhostReadout(readGhostDelta()).value).toBe('Grabando')
+
+    closeLap(world, 12, 4, 500, 20)
+    expect(readGhostDelta().bestLap).toBeNull()
+    expect(formatGhostReadout(readGhostDelta()).value).toBe('Grabando')
   })
 
   it('keeps the best lap for the next race and not for another track', () => {
