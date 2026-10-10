@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { getPersonality } from '../../src/ai/registry.ts'
 import { getCar } from '../../src/cars/registry.ts'
 import { createVehicleState } from '../../src/physics/vehicle.ts'
-import { CONDITION_FLOOR, contactLoss, hook } from '../../src/race/hooks/damage.ts'
+import {
+  CONDITION_FLOOR,
+  RESPAWN_CONDITION,
+  contactLoss,
+  hook,
+} from '../../src/race/hooks/damage.ts'
 import { listHooks } from '../../src/race/hook-registry.ts'
 import type { RaceEvent, RaceWorld } from '../../src/race/types.ts'
 import { createRace, playerRacer, respawnRacer, stepRace } from '../../src/race/world.ts'
@@ -120,7 +125,7 @@ describe('contact damage', () => {
     expect(player.condition).toBe(1)
   })
 
-  it('stops at the limp floor and does not heal on respawn', () => {
+  it('stops at the limp floor and a respawn restores the chassis', () => {
     const world = race()
     const player = playerRacer(world)
     player.vehicle.vx = 40
@@ -135,7 +140,31 @@ describe('contact damage', () => {
     world.time = 1
     world.events = [{ type: 'respawn', racerId: 'player', time: 1 }]
     hook.afterStep?.(world, dt)
-    expect(player.condition).toBe(CONDITION_FLOOR)
+    expect(player.condition).toBeGreaterThanOrEqual(RESPAWN_CONDITION)
+  })
+
+  it('charges one scrape once and still hurts a later hit', () => {
+    const world = race()
+    const player = playerRacer(world)
+    player.vehicle.vx = 28
+    player.vehicle.vz = 0
+    world.time = 0
+    world.events = []
+    hook.afterStep?.(world, dt)
+    const before = player.condition
+    for (let i = 0; i < 22; i += 1) {
+      world.time = 2 + i * 0.45
+      world.events = [{ type: 'wall', racerId: 'player', time: world.time }]
+      hook.afterStep?.(world, dt)
+    }
+    const scraped = before - player.condition
+    expect(scraped).toBeGreaterThan(0)
+    expect(scraped).toBeLessThanOrEqual(0.15)
+    const afterScrape = player.condition
+    world.time += 3
+    world.events = [{ type: 'wall', racerId: 'player', time: world.time }]
+    hook.afterStep?.(world, dt)
+    expect(player.condition).toBeLessThan(afterScrape)
   })
 
   it('makes a damaged car pull less than a healthy one', () => {

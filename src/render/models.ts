@@ -49,13 +49,16 @@ export function prepareMaterials(root: Object3D): Object3D {
   return root
 }
 
-/** Uniform scale, nose toward +Z, bottom on y = 0. */
+/**
+ * Uniform scale, nose toward +Z, bottom on y = 0.
+ * Physics yaw 0 also faces +Z. Kenney's race car is authored with the nose
+ * on -Z, so a raw `rotation.y = yaw` drives that mesh backwards.
+ */
 export function fitObject(root: Object3D, targetLength: number): Object3D {
   root.updateMatrixWorld(true)
-  const box = new Box3().setFromObject(root)
-  const size = box.getSize(new Vector3())
+  const yaw = yawToPlusZ(root)
+  if (yaw !== 0) root.rotation.y += yaw
   const wrapper = new Group()
-  if (size.x > size.z * 1.05 && size.x >= size.y) root.rotation.y += Math.PI / 2
   wrapper.add(root)
   root.updateMatrixWorld(true)
   const fitted = new Box3().setFromObject(wrapper)
@@ -122,13 +125,49 @@ export function fallbackCar(color: string): Group {
   const group = new Group()
   const body = new Mesh(new BoxGeometry(1.7, 0.45, 4.2), new MeshLambertMaterial({ color }))
   body.position.y = 0.48
+  body.name = 'body'
   const cabin = new Mesh(
     new BoxGeometry(1.4, 0.38, 1.5),
     new MeshLambertMaterial({ color: '#2a2a26' }),
   )
-  cabin.position.set(0, 0.86, -0.2)
-  group.add(body, cabin)
+  cabin.name = 'cabin'
+  cabin.position.set(0, 0.86, -0.55)
+  const nose = new Mesh(new BoxGeometry(1.35, 0.28, 0.7), new MeshLambertMaterial({ color }))
+  nose.name = 'nose'
+  nose.position.set(0, 0.62, 1.55)
+  group.add(body, cabin, nose)
   return group
+}
+
+/**
+ * Yaw that maps the model's nose onto +Z. Wheel names win; otherwise a mesh
+ * that is longer on X is turned side-on and the nose is left as authored.
+ */
+function yawToPlusZ(root: Object3D): number {
+  const front = centroid(root, /front/i)
+  const rear = centroid(root, /back|rear/i)
+  if (front && rear) {
+    const fx = front.x - rear.x
+    const fz = front.z - rear.z
+    if (fx * fx + fz * fz > 1e-8) return -Math.atan2(fx, fz)
+  }
+  const size = new Box3().setFromObject(root).getSize(new Vector3())
+  if (size.x > size.z * 1.05 && size.x >= size.y) return Math.PI / 2
+  return 0
+}
+
+function centroid(root: Object3D, pattern: RegExp): Vector3 | null {
+  const sum = new Vector3()
+  const point = new Vector3()
+  let count = 0
+  root.traverse((obj) => {
+    if (obj === root || !pattern.test(obj.name)) return
+    obj.getWorldPosition(point)
+    sum.add(point)
+    count += 1
+  })
+  if (count === 0) return null
+  return sum.multiplyScalar(1 / count)
 }
 
 function isBodyPaint(name: string): boolean {

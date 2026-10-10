@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { paramsFromStats } from '../../src/cars/params.ts'
 import type { CarStats } from '../../src/cars/types.ts'
+import { wrapAngle } from '../../src/core/math.ts'
 import { createVehicleState, stepVehicle } from '../../src/physics/vehicle.ts'
 import type { VehicleInput } from '../../src/physics/types.ts'
 
@@ -36,6 +37,21 @@ describe('vehicle', () => {
     const state = run({ throttle: 0.75, brake: 0, steer: 0.8 }, 3)
     expect(state.yaw).toBeGreaterThan(0.25)
     expect(state.x).toBeGreaterThan(1)
+  })
+
+  it('turns left when the wheel is turned left', () => {
+    const state = run({ throttle: 0.75, brake: 0, steer: -0.8 }, 3)
+    expect(state.yaw).toBeLessThan(-0.25)
+    expect(state.x).toBeLessThan(-1)
+  })
+
+  it('points the nose along the velocity while driving straight', () => {
+    const state = run({ throttle: 1, brake: 0, steer: 0 }, 2)
+    const travel = Math.atan2(state.vx, state.vz)
+    expect(state.speed).toBeGreaterThan(10)
+    expect(Math.abs(wrapAngle(travel - state.yaw))).toBeLessThan(0.05)
+    expect(state.vz).toBeGreaterThan(0)
+    expect(Math.abs(state.vx)).toBeLessThan(1)
   })
 
   it('stops sooner on asphalt than on grass', () => {

@@ -6,6 +6,8 @@ import type { RaceHook, Racer, RaceWorld } from '../types.ts'
  * clamps force with this floor; stopping here keeps the HUD and the car honest.
  */
 export const CONDITION_FLOOR = 0.2
+/** Respawn (manual or the grass rescue) brings the chassis back to at least this. */
+export const RESPAWN_CONDITION = 0.85
 
 const WALL_BASE = 0.04
 const WALL_GAIN = 0.1
@@ -13,6 +15,8 @@ const CAR_BASE = 0.025
 const CAR_GAIN = 0.15
 /** Cars farther apart than this were not the pair that just touched. */
 const CAR_REACH = 6
+/** Wall events closer than this belong to the same scrape and are charged once. */
+const SCRAPE_GAP = 1.25
 
 interface BodySample {
   x: number
@@ -27,6 +31,8 @@ interface BodySample {
  * the speed by the time the hook runs.
  */
 const previous = new Map<string, BodySample>()
+/** Last wall event time per racer. A continuous scrape is one charge. */
+const wallSeenAt = new Map<string, number>()
 
 /** Deterministic condition lost in one impact. `impact` is metres per second. */
 export function contactLoss(kind: 'wall' | 'car', impact: number): number {
@@ -42,11 +48,19 @@ export function contactLoss(kind: 'wall' | 'car', impact: number): number {
 export const hook: RaceHook = {
   id: 'damage',
   afterStep(world) {
-    if (world.time === 0) previous.clear()
+    if (world.time === 0) {
+      previous.clear()
+      wallSeenAt.clear()
+    }
     for (const event of world.events) {
       if (event.type === 'wall') {
         const racer = findRacer(world, event.racerId)
-        if (racer) applyLoss(racer, contactLoss('wall', bodySpeed(racer)))
+        if (racer && chargeWall(racer.id, world.time)) {
+          applyLoss(racer, contactLoss('wall', bodySpeed(racer)))
+        }
+      } else if (event.type === 'respawn') {
+        const racer = findRacer(world, event.racerId)
+        if (racer) racer.condition = Math.max(racer.condition, RESPAWN_CONDITION)
       } else if (event.type === 'collision') {
         const racer = findRacer(world, event.racerId)
         if (!racer) continue
@@ -59,6 +73,13 @@ export const hook: RaceHook = {
     }
     for (const racer of world.racers) remember(racer)
   },
+}
+
+function chargeWall(id: string, time: number): boolean {
+  const last = wallSeenAt.get(id)
+  wallSeenAt.set(id, time)
+  if (last !== undefined && time >= last && time - last < SCRAPE_GAP) return false
+  return true
 }
 
 function applyLoss(racer: Racer, loss: number): void {

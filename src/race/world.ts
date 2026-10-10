@@ -93,7 +93,7 @@ export function stepRace(world: RaceWorld, human: VehicleInput, dt: number): voi
 
   const player = world.racers[0]
   const rival = world.racers[1]
-  if (player && rival && separateCars(player.vehicle, rival.vehicle)) {
+  if (player && rival && separateCars(player.vehicle, rival.vehicle, player.params, rival.params)) {
     if (player.carCooldown <= 0) {
       pushEvent(world, 'collision', player.id)
       player.carCooldown = 0.35
@@ -103,7 +103,10 @@ export function stepRace(world: RaceWorld, human: VehicleInput, dt: number): voi
 
   world.racers.forEach((racer, index) => {
     const after = locate(world.track, racer.vehicle.x, racer.vehicle.z, racer.lastS)
-    if (collideWall(racer.vehicle, after, world.track.runoff) && racer.wallCooldown <= 0) {
+    if (
+      collideWall(racer.vehicle, after, world.track.runoff, racer.params) &&
+      racer.wallCooldown <= 0
+    ) {
       pushEvent(world, 'wall', racer.id)
       racer.wallCooldown = 0.45
     }
@@ -144,12 +147,13 @@ export function stepRace(world: RaceWorld, human: VehicleInput, dt: number): voi
     if (progress.finishedNow) pushEvent(world, 'finish', racer.id)
 
     const input = driven[index] ?? IDLE_INPUT
-    const crawling =
-      Math.abs(racer.vehicle.speed) < 1.1 && input.throttle > 0.55 && input.brake < 0.2
+    const speed = Math.abs(racer.vehicle.speed)
+    const crawling = speed < 1.1 && input.throttle > 0.55 && input.brake < 0.2
+    const beached = racer.surface === 'grass' && speed < 1.5
     const lost = Math.abs(settled.lateral) > world.track.width / 2 + world.track.runoff + 12
-    if (racer.grace <= 0 && (crawling || lost) && !racer.finished) racer.stuck += dt
+    if (racer.grace <= 0 && !racer.finished && (beached || crawling || lost)) racer.stuck += dt
     else racer.stuck = 0
-    if (racer.stuck > 2.4) respawnRacer(world, racer)
+    if (racer.stuck > (beached ? 2 : 2.4)) respawnRacer(world, racer)
   })
 
   for (const hook of listHooks()) hook.afterStep?.(world, dt)

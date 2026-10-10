@@ -140,8 +140,10 @@ describe('ghost and best lap', () => {
   })
 
   it('spawns the ghost after a real lap without touching the field', () => {
+    // Costanera stays on the asphalt, so the lap is eligible. Gradiente's
+    // grass rescue dirties the lap and is covered with the contact tests.
     const world = createRace({
-      track: getTrack('gradiente'),
+      track: getTrack('costanera'),
       player: getCar('flash-7b'),
       rival: getCar('reasoner-70b'),
       personality: getPersonality('cauto'),
