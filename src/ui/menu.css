@@ -1,0 +1,126 @@
+/* Landing layout only. Every selector stays under .menu so the HUD and the
+   other screens keep style.css. Spacing matches the panel rhythm already in
+   that file: tokens.css has no space scale, and this item cannot add tokens. */
+
+.menu {
+  gap: 16px;
+  overflow-wrap: break-word;
+}
+
+.menu .menu-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.menu h1,
+.menu h2,
+.menu .menu-lineup,
+.menu .menu-keys {
+  text-wrap: pretty;
+}
+
+.menu .menu-lineup {
+  color: var(--fg);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-normal);
+  line-height: var(--leading-normal);
+}
+
+.menu .menu-circuit {
+  min-inline-size: 0;
+}
+
+.menu .menu-choice {
+  align-items: flex-start;
+}
+
+.menu .menu-choice input {
+  flex: none;
+  margin: 0;
+}
+
+.menu .menu-choice input:focus-visible {
+  outline: var(--line-focus) solid var(--ring);
+  outline-offset: var(--focus-offset);
+}
+
+.menu .menu-choice-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.menu .menu-choice-name,
+.menu .menu-choice-note {
+  overflow-wrap: break-word;
+}
+
+.menu .menu-choice-name {
+  color: var(--fg);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+}
+
+.menu .menu-choice-note {
+  color: var(--fg-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-normal);
+  line-height: var(--leading-normal);
+}
+
+.menu .choice {
+  transition: background-color var(--dur-instant) var(--ease-out);
+}
+
+.menu .choice:active {
+  background: var(--surface-3);
+}
+
+.menu .choice:has(input:checked),
+.menu .choice:has(input:checked):active {
+  background: var(--accent-wash);
+}
+
+.menu .menu-actions {
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.menu .menu-actions .btn {
+  width: 100%;
+}
+
+.menu .btn[disabled],
+.menu .btn[disabled]:hover,
+.menu .btn[disabled]:active {
+  background: var(--surface-3);
+  color: var(--fg-disabled);
+  transform: none;
+}
+
+@media (hover: hover) {
+  .menu .choice:hover {
+    background: var(--surface-2);
+  }
+
+  .menu .choice:has(input:checked):hover {
+    background: var(--accent-wash);
+  }
+}
+
+@media (min-width: 721px) {
+  .menu {
+    gap: 24px;
+  }
+}
+
+@media (max-width: 720px) {
+  .menu {
+    padding-bottom: max(28px, env(safe-area-inset-bottom));
+  }
+}
